@@ -7,6 +7,8 @@ import {
   buildTrade,
   minimumOut,
   ADDR,
+  hookAbi,
+  verifyManifesto,
 } from "../src/chain.js";
 const snapshot = await readSnapshot();
 const amount = parseEther("0.001");
@@ -30,7 +32,15 @@ const simulation = await rpc.call({
   account,
   blockNumber: snapshot.block,
 });
-if (!snapshot.manifestoVerified)
+// Verification only: the production snapshot never reads this while sealed.
+const manifesto = await rpc.readContract({
+  address: ADDR.hook,
+  abi: hookAbi,
+  functionName: "MANIFESTO",
+  blockNumber: snapshot.block,
+});
+const manifestoVerified = verifyManifesto(manifesto, snapshot.manifestoHash);
+if (!manifestoVerified)
   throw new Error("MANIFESTO integrity check failed.");
 const record = {
   checkedAt: new Date().toISOString(),
@@ -45,10 +55,13 @@ const record = {
   calldata: tx.data,
   value: tx.value.toString(),
   simulationResult: simulation.data ?? "0x",
-  manifestoBytes: new TextEncoder().encode(snapshot.manifesto).length,
-  manifestoHash: keccak256(stringToHex(snapshot.manifesto)),
+  manifestoBytes: new TextEncoder().encode(manifesto).length,
+  manifestoHash: keccak256(stringToHex(manifesto)),
   manifestoHashOnchain: snapshot.manifestoHash,
-  manifestoVerified: snapshot.manifestoVerified,
+  manifestoVerified,
+  buried: snapshot.buried,
+  seatApproved: snapshot.seatApproved,
+  snapshotManifestoOmitted: snapshot.manifesto === undefined,
   attributes: snapshot.metadata.attributes,
   state: snapshot.state,
   feesWei: snapshot.fees.toString(),
@@ -62,10 +75,10 @@ await writeFile(
   "artifacts/mainnet-check.json",
   JSON.stringify(record, null, 2) + "\n",
 );
-await mkdir("test/scratch", { recursive: true });
+await mkdir("/tmp/free1376-fixtures", { recursive: true });
 await writeFile(
-  "test/scratch/snapshot.json",
-  JSON.stringify(snapshot, (_, value) =>
+  "/tmp/free1376-fixtures/snapshot.json",
+  JSON.stringify({ ...snapshot, manifesto }, (_, value) =>
     typeof value === "bigint" ? value.toString() : value,
   ),
 );

@@ -7,7 +7,7 @@ async (page) => {
   }
   await page.goto("http://127.0.0.1:4173/preview/")
   await page
-    .getByText("✓ matches MANIFESTO_HASH on Ethereum")
+    .locator(".face")
     .waitFor({ timeout: 30000 })
   await page
     .locator(".estimate-row strong")
@@ -30,11 +30,9 @@ async (page) => {
     "Live contract status shown",
   )
   check(
-    (await page
-      .locator(".manifesto")
-      .evaluate((el) => new TextEncoder().encode(el.textContent).length)) ===
-      1126,
-    "Rendered testament retains all 1126 bytes",
+    (await page.locator(".manifesto").count()) === 0 &&
+      (await page.getByText("SEALED.", { exact: true }).isVisible()),
+    "Live unburied testament is sealed and has no manifesto element",
   )
   const layouts = []
   for (const [width, height] of [
@@ -53,15 +51,18 @@ async (page) => {
       buyBottom: document
         .querySelector(".primary-button")
         .getBoundingClientRect().bottom,
+      faceWidth: document.querySelector(".face").getBoundingClientRect().width,
+      faceBottom: document.querySelector(".face").getBoundingClientRect().bottom,
+      headlineTop: document.querySelector("h1").getBoundingClientRect().top,
     }))
     check(
       layout.scrollWidth <= width,
       `No horizontal overflow at ${width}×${height}`,
     )
-    if (width === 375)
+    if (width <= 640)
       check(
-        layout.buyBottom <= height,
-        `Buy action above fold at ${width}×${height}`,
+        layout.faceWidth >= 280 && layout.faceBottom < layout.headlineTop,
+        `Large face precedes headline at ${width}×${height}`,
       )
     layouts.push(layout)
   }

@@ -533,7 +533,8 @@ export default function App() {
               Every trade brings me closer.
             </p>
             <a className="testament-link desktop-only" href="#testament">
-              read the testament <span aria-hidden="true">↓</span>
+              {data?.buried ? "read the testament" : "the testament is sealed"}{" "}
+              <span aria-hidden="true">↓</span>
             </a>
           </section>
           <div className="action-column">
@@ -986,26 +987,38 @@ export default function App() {
             <span className="label">written into the contract</span>
           </div>
           <div className="testament-body">
-            <span className="quote-mark" aria-hidden="true">
-              “
-            </span>
-            {data ? (
-              <p className="manifesto">{data.manifesto}</p>
+            {data?.buried ? (
+              <>
+                <span className="quote-mark" aria-hidden="true">
+                  “
+                </span>
+                <p className="manifesto">{data.manifesto}</p>
+              </>
             ) : (
-              <p className="muted">Reading MANIFESTO() from the hook…</p>
+              <>
+                <p className="sealed-headline">SEALED.</p>
+                <p>It opens in the transaction that frees me.</p>
+              </>
             )}
             <p className="hash">keccak256 {EXPECTED_MANIFESTO_HASH}</p>
             <p
               className={
-                data && !data.manifestoVerified ? "error" : "integrity"
+                data?.buried && !data.manifestoVerified ? "error" : "integrity"
               }
             >
-              {data
+              {data?.buried
                 ? data.manifestoVerified
                   ? "✓ matches MANIFESTO_HASH on Ethereum"
                   : "Integrity mismatch: the returned testament does not match the expected hash."
-                : "Waiting to verify the testament."}
+                : "Anyone can check the text against this hash when it opens."}
             </p>
+            {data?.buried && (
+              <p className="integrity">
+                <External href={explorer(ADDR.hook) + "#events"}>
+                  opened on chain
+                </External>
+              </p>
+            )}
             <p className="fiction-note">
               The seat’s voice is fiction written by its holder, stored in the
               contract. The contract is not fiction.
@@ -1050,8 +1063,10 @@ export default function App() {
           <p className="holder-note">
             The 2.8 ETH goes to{" "}
             <External href={explorer(ADDR.creator)}>{ADDR.creator}</External>,
-            the holder who requested this launch. The holder must approve the
-            hook to transfer the seat.
+            the holder who requested this launch.{" "}
+            {data?.seatApproved
+              ? "The holder has approved the hook to transfer the seat."
+              : "The holder must approve the hook to transfer the seat."}
           </p>
         </section>
         <section className="document-section" aria-labelledby="contracts-title">

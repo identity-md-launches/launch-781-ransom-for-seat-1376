@@ -263,7 +263,8 @@ code {
   letter-spacing: 0.09em;
   color: var(--accent-text);
 }
-h1 {
+h1,
+.sealed-headline {
   font-size: clamp(3.5rem, 5.4vw, 4.75rem);
   line-height: 0.99;
   letter-spacing: -0.075em;
@@ -271,6 +272,11 @@ h1 {
 }
 h1 span {
   color: var(--accent);
+}
+.sealed-headline {
+  color: var(--accent);
+  margin-block-end: 14px;
+  text-wrap: balance;
 }
 .hero-note {
   color: var(--muted);
@@ -889,7 +895,8 @@ footer {
     gap: 36px;
     grid-template-columns: minmax(0, 1fr) minmax(0, 400px);
   }
-  h1 {
+  h1,
+  .sealed-headline {
     font-size: 3.3rem;
   }
   .header-divider {
@@ -960,7 +967,8 @@ footer {
     align-self: end;
     line-height: 1.5;
   }
-  h1 {
+  h1,
+  .sealed-headline {
     grid-column: 2;
     align-self: start;
     font-size: clamp(1.9rem, 8.9vw, 3.4rem);
@@ -1177,7 +1185,8 @@ footer {
   .seat-caption {
     margin-block-end: 6px;
   }
-  h1 {
+  h1,
+  .sealed-headline {
     font-size: 1.875rem;
   }
   .paid-line strong {
@@ -1201,5 +1210,18 @@ footer {
   }
   .slippage {
     margin-block: 6px 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .seat-story {
+    display: block;
+  }
+  .face-stage {
+    width: 100%;
+    padding: 0;
+  }
+  .seat-caption {
+    margin-block: 26px 14px;
   }
 }

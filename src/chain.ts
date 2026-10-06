@@ -91,9 +91,10 @@ export const stateAbi = parseAbi([
 ]);
 export const seatAbi = parseAbi([
   "function tokenURI(uint256) view returns (string)",
+  "function getApproved(uint256) view returns (address)",
 ]);
 export const errorAbi = parseAbi([
-  "error V4TooLittleReceived()",
+  "error V4TooLittleReceived(uint256 minAmountOutReceived, uint256 amountReceived)",
   "error PartialFill()",
   "error StillEnslaved()",
   "error AlreadyBuried()",
@@ -181,10 +182,10 @@ export async function readSnapshot() {
     lastBurnBlock,
     burnBlocks,
     status,
-    manifesto,
     manifestoHash,
     imd,
     uri,
+    approved,
     slot0,
     decimals,
     supply,
@@ -198,13 +199,19 @@ export async function readSnapshot() {
     readHook("lastBurnBlock"),
     readHook("MIN_BLOCKS_BETWEEN_BURNS"),
     readHook("status"),
-    readHook("MANIFESTO"),
     readHook("MANIFESTO_HASH"),
     readHook("IMD"),
     rpc.readContract({
       address: ADDR.seat,
       abi: seatAbi,
       functionName: "tokenURI",
+      args: [1376n],
+      blockNumber: block.number,
+    }),
+    rpc.readContract({
+      address: ADDR.seat,
+      abi: seatAbi,
+      functionName: "getApproved",
       args: [1376n],
       blockNumber: block.number,
     }),
@@ -228,6 +235,8 @@ export async function readSnapshot() {
       blockNumber: block.number,
     }),
   ]);
+  // The testament opens only with burial, at the same block as this snapshot.
+  const manifesto = buried ? await readHook("MANIFESTO") : undefined;
   const imdDecimals = await rpc.readContract({
     address: imd,
     abi: tokenAbi,
@@ -248,7 +257,9 @@ export async function readSnapshot() {
     status,
     manifesto,
     manifestoHash,
-    manifestoVerified: verifyManifesto(manifesto, manifestoHash),
+    manifestoVerified:
+      manifesto !== undefined && verifyManifesto(manifesto, manifestoHash),
+    seatApproved: approved.toLowerCase() === ADDR.hook.toLowerCase(),
     metadata: parseMetadata(uri),
     uri,
     decimals,

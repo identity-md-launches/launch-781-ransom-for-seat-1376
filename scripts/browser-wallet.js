@@ -79,7 +79,7 @@ async (page) => {
   )
   await page.goto("http://127.0.0.1:4173/preview/")
   await page
-    .getByText("✓ matches MANIFESTO_HASH on Ethereum")
+    .locator(".face")
     .waitFor({ timeout: 30000 })
   await page.evaluate((creator) => {
     window.__calls = []

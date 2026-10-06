@@ -8,6 +8,7 @@ import {
   formatUnits,
   maxUint128,
   parseAbiParameters,
+  parseAbi,
   parseEther,
 } from "viem";
 import {
@@ -143,9 +144,16 @@ test("sell approvals skip sufficient allowances but renew expiring permits", () 
 });
 test("nested router and hook errors remain actionable", () => {
   const reason = encodeErrorResult({
-    abi: errorAbi,
+    abi: parseAbi([
+      "error V4TooLittleReceived(uint256 minAmountOutReceived, uint256 amountReceived)",
+    ]),
     errorName: "V4TooLittleReceived",
+    args: [100n, 90n],
   });
+  assert.equal(
+    explainError({ data: reason }),
+    "price moved: raise slippage or try again",
+  );
   const data = encodeErrorResult({
     abi: errorAbi,
     errorName: "ExecutionFailed",

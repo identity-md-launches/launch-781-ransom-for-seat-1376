@@ -1,5 +1,5 @@
 // Test-only calldata / responses. Written outside the production export.
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import {
   encodeAbiParameters,
   encodeFunctionData,
@@ -111,7 +111,13 @@ const fixtures = {
       ],
     ),
   ),
+  snapshot: JSON.parse(
+    await readFile("/tmp/free1376-fixtures/snapshot.json", "utf8"),
+  ),
 };
-await mkdir("test/scratch/serve", { recursive: true });
-await writeFile("test/scratch/serve/fixtures.json", JSON.stringify(fixtures));
+await mkdir("/tmp/free1376-fixtures", { recursive: true });
+await writeFile(
+  "/tmp/free1376-fixtures/fixtures.json",
+  JSON.stringify(fixtures),
+);
 console.log("Browser test fixtures prepared outside dist/.");

@@ -5,7 +5,7 @@ async (page) => {
   await page.route("https://ethereum-rpc.publicnode.com/**", fail)
   await page.goto("http://127.0.0.1:4173/preview/")
   await page
-    .getByText("✓ matches MANIFESTO_HASH on Ethereum")
+    .locator(".face")
     .waitFor({ timeout: 30000 })
   results.push(
     "Read-only mode recovers through eth.drpc.org when PublicNode fails",
@@ -26,13 +26,18 @@ async (page) => {
     .waitFor({ timeout: 30000 })
   if ((await page.locator(".paid-line").innerText()).includes("1."))
     throw new Error("Unexpected fabricated ransom")
+  if ((await page.locator(".manifesto").count()) !== 0 || !(await page.getByText("SEALED.", { exact: true }).isVisible()))
+    throw new Error("Unavailable initial snapshot must keep the testament sealed")
   results.push(
     "Initial RPC failure shows placeholders instead of invented live numbers",
   )
   await page.unrouteAll({ behavior: "wait" })
   await page.getByRole("button", { name: "refresh", exact: true }).click()
   await page
-    .getByText("✓ matches MANIFESTO_HASH on Ethereum")
+    .getByText("Live reads are unavailable.", { exact: false })
+    .waitFor({ state: "hidden", timeout: 30000 })
+  await page
+    .locator(".face")
     .waitFor({ timeout: 30000 })
   results.push("Refresh restores live data after an outage")
   return { results }
