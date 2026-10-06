@@ -1,0 +1,30 @@
+{
+  "name": "ransom-for-seat-1376",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "tsx --test scripts/*.test.ts",
+    "check:mainnet": "tsx scripts/check-mainnet.ts"
+  },
+  "dependencies": {
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "viem": "2.38.5"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@types/node": "24.7.2",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@vitejs/plugin-react": "5.0.4",
+    "prettier": "^3.6.2",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vite": "7.1.9"
+  }
+}
