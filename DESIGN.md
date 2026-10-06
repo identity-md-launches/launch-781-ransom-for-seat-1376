@@ -24,7 +24,7 @@ Canonical definitions: `src/style.css`, `:root`. All colors use sRGB hex; there 
 
 `--gradient` is `linear-gradient(110deg, #f97316, #fdba74 48%, #22d3ee)`. The primary button uses black text. Selected quick amounts use the local inset color `#241b13`. Color is accompanied by explicit state text, checkmarks, radio selection or an underline.
 
-Measured for the revised testament on its rendered `#030303` background: orange sealed headline 7.36:1; white opening sentence 18.33:1; muted hash 8.40:1; cyan verification explanation 11.41:1. The existing gradient action has an incomplete automated contrast check and was not independently sampled in this revision. See `artifacts/validation.md`.
+Rechecked for the existing testament on its rendered `#030303` background: orange sealed headline 7.36:1; white opening sentence 18.33:1; muted hash 8.40:1; cyan verification explanation 11.41:1. The holder note uses `#aca49d` on its rendered `#14100e` panel, measured at 7.70:1. The existing gradient action has an incomplete automated contrast check and was not independently sampled in this revision. See `artifacts/validation.md`.
 
 ## Typography
 
@@ -48,7 +48,7 @@ Headings use balanced wrapping. Body text is selectable. Selection is peach with
 
 The live data row uses three columns, then two plus a full-width supply line. The mechanics grid changes from three columns to one. Contract rows place label/address/copy alongside one another on desktop and move the address to its own wrapping row on mobile. The wallet dialog is at most 440px wide, stays within 16px viewport gutters, and scrolls within the dynamic viewport height.
 
-Observed without horizontal overflow: 320×740, 375×667, 375×812, 640×900, 641×900, 768×1024 and 1440×1100. The face is above the headline throughout the ≤640px range; the trade action is reached by scrolling on phones. 200% text enlargement reflowed at 375px; browser-native zoom was not tested. Extra warnings, Sell approvals, and future hook states remain in normal flow.
+Observed without horizontal overflow: 320×740, 375×667, 375×812, 640×900, 641×900, 768×1024 and 1440×1100. The face is above the headline throughout the ≤640px range; the trade action is reached by scrolling on phones. 200% text enlargement reflowed at 375px; browser-native zoom was not tested. Extra warnings, Sell approvals, and future hook states remain in normal flow. The longer burial sentence was checked at 320, 375, 640, 641, 768 and 1440px: the existing wrapping rule keeps the full address and payment text within the holder panel without clipping. No CSS, component structure, tokens or responsive rules changed in this revision.
 
 ## Elevation & Depth
 
@@ -75,7 +75,7 @@ Implementation lives in `src/App.tsx`; styles in `src/style.css`. These are page
 | `.wallet-dialog` | Lists EIP-6963 wallets without displaying wallet-provided icons; falls back to browser providers or mobile links. Escape closes and focus returns to its trigger. |
 | `.document-section` | Indexed heading, large block spacing, fine lower divider; used for testament, mechanics and contracts. |
 | `.testament-body` | Defaults to the sealed state, including while loading. `SEALED.` uses the existing orange headline rules and 14px bottom spacing. The commitment uses `.hash`; explanation uses `.integrity`. Only a buried snapshot renders `.manifesto`, its existing hash result, and the events link through `External`. |
-| `.holder-note` | Existing surface and typography; approval sentence reflects `getApproved(1376)` from the same snapshot, comparing addresses without case sensitivity. |
+| `.holder-note` | Existing surface and typography: 12px monospace, `--muted` on `--surface`, 32px top margin, 20px padding (16px below 47rem), `overflow-wrap: anywhere`. The final sentence checks burial first, then hook approval, using the same snapshot block. Burial states the full dead address and payment in the same transaction; otherwise the original approved/must-approve text remains. |
 
 Interactive outlines are 2px cyan with 4px offset. The amount field uses a 2px offset. Tab controls use roving focus with arrow/Home/End keys. Most major actions are at least 44px tall; compact quick amounts and radio chips are 32–36px, above the 24px baseline with separate non-overlapping targets. Mouse hover changes text/border only on hover-capable devices. Transitions are limited to 120ms and enabled only when reduced motion is not requested. Forced-color rules retain controls, selections and focus.
 

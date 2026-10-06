@@ -67,10 +67,11 @@ export default async function revision(page) {
     }
     if (
       tx.to.toLowerCase() === ADDR.seat.toLowerCase() &&
-      tx.data === approvedCall &&
-      approval !== undefined
-    )
-      result = encoded("address", approval);
+      tx.data === approvedCall
+    ) {
+      readRequests.push({ state, data: tx.data, block: request.params[1] });
+      if (approval !== undefined) result = encoded("address", approval);
+    }
     if (rejectTrade && tx.to.toLowerCase() === ADDR.router.toLowerCase()) {
       const inner = encodeErrorResult({
         abi: parseAbi([
@@ -263,6 +264,7 @@ export default async function revision(page) {
       ".testament-body > p:nth-child(2)",
       ".hash",
       ".integrity",
+      ".holder-note",
     ].map((selector) => {
       const element = document.querySelector(selector),
         style = getComputedStyle(element);
@@ -314,6 +316,14 @@ export default async function revision(page) {
     "Another approved address does not count as hook approval",
   );
   approval = ADDR.hook;
+  await refresh();
+  check(
+    (await page.locator(".holder-note").textContent()).endsWith(
+      "The holder has approved the hook to transfer the seat.",
+    ),
+    "Unburied seat with hook approval shows has approved sentence",
+  );
+  approval = ADDR.zero;
   state = "buried";
   await refresh();
   await page.locator(".manifesto").waitFor();
@@ -341,10 +351,10 @@ export default async function revision(page) {
     "Burial restores read the testament link",
   );
   check(
-    (await page.locator(".holder-note").textContent()).includes(
-      "The holder has approved the hook to transfer the seat.",
+    (await page.locator(".holder-note").textContent()).endsWith(
+      "The seat is at 0x000000000000000000000000000000000000dEaD. The 2.8 ETH was paid in the same transaction.",
     ),
-    "Approved hook restores has approved sentence",
+    "Burial with cleared getApproved shows burial and same-transaction payment",
   );
   const openingRead = readRequests.find(
     (r) => r.state === "buried" && r.data === selector("MANIFESTO"),
@@ -353,9 +363,38 @@ export default async function revision(page) {
     readRequests
       .filter((r) => r.state === "buried")
       .every((r) => r.block === openingRead.block),
-    "Burial gate and opened text use the same snapshot block",
+    "Burial, getApproved and opened text use the same snapshot block",
   );
   await page.locator("#testament").screenshot({ path: "artifacts/opened.png" });
+  const holderLayouts = [];
+  for (const width of [320, 375, 640, 641, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.locator(".holder-note").scrollIntoViewIfNeeded();
+    const layout = await page.locator(".holder-note").evaluate((el) => ({
+      width: innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      noteWidth: el.clientWidth,
+      noteScrollWidth: el.scrollWidth,
+      text: el.textContent,
+    }));
+    check(
+      layout.documentWidth <= width && layout.noteScrollWidth <= layout.noteWidth,
+      `Burial sentence wraps without clipping at ${width}px`,
+    );
+    holderLayouts.push(layout);
+    if (width === 320 || width === 1440)
+      await page.locator(".holder-note").screenshot({
+        path: `artifacts/holder-buried-${width}.png`,
+      });
+  }
+  approval = ADDR.hook;
+  await refresh();
+  check(
+    (await page.locator(".holder-note").textContent()).endsWith(
+      "The seat is at 0x000000000000000000000000000000000000dEaD. The 2.8 ETH was paid in the same transaction.",
+    ),
+    "Burial takes precedence even when approval is still true",
+  );
   state = "tampered";
   await refresh();
   check(
@@ -409,6 +448,7 @@ export default async function revision(page) {
   return {
     results,
     layouts,
+    holderLayouts,
     colors,
     manifestoRequests,
     renderedManifestoBytes: Buffer.byteLength(snapshot.manifesto),

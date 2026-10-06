@@ -1064,9 +1064,11 @@ export default function App() {
             The 2.8 ETH goes to{" "}
             <External href={explorer(ADDR.creator)}>{ADDR.creator}</External>,
             the holder who requested this launch.{" "}
-            {data?.seatApproved
-              ? "The holder has approved the hook to transfer the seat."
-              : "The holder must approve the hook to transfer the seat."}
+            {data?.buried
+              ? "The seat is at 0x000000000000000000000000000000000000dEaD. The 2.8 ETH was paid in the same transaction."
+              : data?.seatApproved
+                ? "The holder has approved the hook to transfer the seat."
+                : "The holder must approve the hook to transfer the seat."}
           </p>
         </section>
         <section className="document-section" aria-labelledby="contracts-title">
