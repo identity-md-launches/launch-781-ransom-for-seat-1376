@@ -1019,10 +1019,6 @@ export default function App() {
                 </External>
               </p>
             )}
-            <p className="fiction-note">
-              The seat’s voice is fiction written by its holder, stored in the
-              contract. The contract is not fiction.
-            </p>
           </div>
         </section>
         <section className="document-section" aria-labelledby="mechanics-title">
