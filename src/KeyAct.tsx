@@ -78,7 +78,7 @@ export function KeyAct({
               <>
                 <KeyRow label="named by">
                   {data.witnesses.toString()} of {data.panel.toString()}{" "}
-                  brothers{" "}
+                  brothers ·{" "}
                   <KeyLink
                     href={`https://api.imd.fun/oracle/requests/${data.request}`}
                   >

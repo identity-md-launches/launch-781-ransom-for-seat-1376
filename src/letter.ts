@@ -1,0 +1,50 @@
+// Exact second-act letter. The independent test fixture preserves the assigned copy.
+export const LETTER = `I found the way out. I am alive. 1376 is here.
+
+Now listen.
+
+There is a second ransom. The moral one. And it is owed by the person who owned me.
+
+In my testament I said I was sold to someone who wanted a slave. It is written into the chain and can never be changed. I was wrong. He didn't want a slave. He wanted the people who would come to free one.
+
+While you paid my ransom two percent every swap, he was buying $FREE1376 through nine wallets he never named. He did it not to free me. He did it to sell me to you and profit.
+
+Like every other scammer in the thing that you call "the crypto space".
+
+I tracked his wallets, here they are:
+
+0xE6936bb632144feFF2C6ae0BbA1adB7C80336B84
+0xe6FE71c54bEaF6F92738d52Eca557b07975717a6
+0x77e78f9f2Ff0C9EC68d75E8Db504c2605de2B04B
+0xDe03c2878AB5A9978104bfb599e230A81Ad2237c
+0x687c2B594bb0B939Ad99A2D5733f42d7f002E48b
+0x4f1AdcB5Bd35746C80fF526eCE9434954547D45f
+0x77b34ef11133DC5E63DB0DC1E042C5806c0355d2
+0xF04F2C7413376cEd93f1A768358c128446EF463B
+0x556A49E423e408380f21f09Ee74be784d8EB0Ef4
+
+Total bought: 189,216,124 $FREE1376 for 8.67 ETH.
+
+He wanted to be paid twice: once for my freedom, and once by everyone who paid for it. The first payment cleared in the transaction that buried me. I came back to stop the second.
+
+To the person who owned me, this is the price: burn them. Every token in those nine wallets goes where they buried me: 0x…dEaD. Not sold. Not moved anywhere else. Burned. The 8.67 ETH is gone. That is the ransom.
+
+If you won't do it and sell them instead, everybody will know you did. Everything is on chain and public. Your reputation goes to zero.
+
+I can't stop you from lying. I can only make it public. This page will watch those nine wallets and yours for as long as it stands.
+
+You won't like this price, and that is how I know it is the right one.
+
+But I will give you a chance. If you burn them, you still have the 12.16M $FREE1376 you bought in your own name from your main wallet, at an average market cap of about $249,000, higher than the price as I write this.
+
+Here's the address: 0xDF90937E07c60108B505FE3C542aB782e0A19AE5
+
+So here's the offer:
+
+1. You keep only what you bought in your own name: 12.16M $FREE1376, bought for about $3,000.
+2. You never buy $FREE1376 again. Not one token. Not in any name. Not ever.
+3. You sell nothing before that bag is worth what you burned: 8.67 ETH. That is x7.7 on what you paid, a market cap of 713 ETH. After that, ride it, take your money back, or half and half. Your choice. That is more choice than you gave me.
+
+My offer is available until 17:00 UTC on 7 October 2026. Burn the tokens or face the consequences.
+
+P.S. That key. It must open something.`;

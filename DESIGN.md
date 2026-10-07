@@ -2,7 +2,7 @@
 
 ## Overview
 
-A dark, monospace Ethereum site in three hash-selected acts. The first retains the existing seat portrait, ransom meter, trading panel, testament, mechanics and contracts. The second is a sealed testament-style block. The third presents the key's contract image and provenance. The new navigation sits immediately below the existing header; all other first-act composition stays in place.
+A dark, monospace Ethereum site in three hash-selected acts. The first retains the existing seat portrait, ransom meter, trading panel, testament, mechanics and contracts. The second opens the full letter and a live wallet watch, using the testament and contract-row styles. The third presents the key's contract image and provenance. The new navigation sits immediately below the existing header; all other first-act composition stays in place.
 
 Orange carries the seat's voice, cyan marks verification and focus, and warm black distinguishes functional panels. The only content images are the onchain seat and key, each rendered as an `img` with a data URI. No new theme, font or component library is introduced.
 
@@ -24,7 +24,7 @@ Canonical sRGB values and semantic aliases live in `src/style.css:1`.
 
 `--gradient` is `linear-gradient(110deg, #f97316, #fdba74 48%, #22d3ee)`. Active navigation has a peach underline and `aria-current`, so color is not its only cue. The favicon uses the key's circular ring, an orange-to-peach stroke on black; its outer stroke is 4 units in a 32-unit viewBox, with a faint inner ring matching the original key artwork.
 
-The previous build recorded contrast for the existing palette. Current rendered measurements are 8.40:1 for the new muted attribution/link and dollar labels (`#aca49d` on `#030303`), and 11.41:1 for the retained cyan burn total (`#22d3ee` on `#030303`). Records are in `artifacts/revision-browser.json`; no full accessibility certification is claimed. The existing gradient action remains an incomplete automated contrast check.
+Rendered second-act measurements are 18.33:1 for body/value/verdict text (`#f5f1eb` on `#030303`), 8.40:1 for balances/countdown labels (`#aca49d` on `#030303`), and 12.23:1 for the active tab (`#fdba74` on `#030303`). These were computed from browser styles; records are in `artifacts/watch-browser.json`. No full accessibility certification or new gradient analysis is claimed.
 
 ## Typography
 
@@ -32,7 +32,9 @@ The previous build recorded contrast for the existing palette. Current rendered 
 
 Tokens: caption 12px, small 13px, body 16px, title 22px. Section titles use 22px/1.3 at weight 500. Hero and `.sealed-headline` use `clamp(3.5rem, 5.4vw, 4.75rem)`, weight 700, line-height .99, tracking −.075em. Below 62rem this becomes 3.3rem, below 47rem `clamp(1.9rem, 8.9vw, 3.4rem)`, and on short phones 1.875rem. The third act uses the existing 12px label style for the conditional `Welcome, keyholder.` line above the image and for the retry message.
 
-Act links use 13px desktop / 12px mobile and 10px sealed marks, retaining the site's compact label hierarchy. Their labels stay on one line at 360px; at narrower widths or enlarged text their contents may wrap. The opened manifesto stays 16px/1.9 desktop, 15px/1.9 mobile, preserving its whitespace. Its full text reserves the final height throughout the 120-character/second reveal, preventing layout shifts. The visual overlay is aria-hidden and unselectable; the complete text underneath remains selectable and available to assistive technology. Long addresses and hashes wrap anywhere; only the explicitly abbreviated dead-address links stay unbroken.
+Act links use 13px desktop / 12px mobile and 10px sealed marks, retaining the site's compact label hierarchy. The second act has no sealed mark. Their labels stay on one line at 360px; at narrower widths or enlarged text their contents may wrap. The opened manifesto stays 16px/1.9 desktop, 15px/1.9 mobile, preserving its whitespace. Its full text reserves the final height throughout the 120-character/second reveal, preventing layout shifts. The visual overlay is aria-hidden and unselectable; the complete text underneath remains selectable and available to assistive technology. Long addresses and hashes wrap anywhere; only the explicitly abbreviated dead-address links stay unbroken.
+
+The second-act letter reuses `.manifesto` at 16px/1.9 desktop and 15px/1.9 mobile. Its opening sentence is an h1 with inherited body typography (400 weight, normal tracking); remaining paragraphs use native p elements, rules use ol/li, and addresses stay fully selectable and underlined. `src/second-act.css` uses 1.9em paragraph gaps, 3ch list indentation and 0.5em gaps between wallet entries. The whole letter appears immediately with no animation. Watch rows use existing 13px contract values and 12px labels; verdicts use the normal 16px body.
 
 `src/display.ts` formats changing quote values without floating-point conversion: two fixed decimals for FREE1376, six for ETH, thousands separators on both quote lines. Estimates round to nearest, minimums down, and exact values remain in titles. The paid amount truncates to four decimals; the remaining ETH rounds up to four, so the displayed pair sums to 2.8.
 
@@ -46,7 +48,9 @@ The first act's `.opening` grid uses `1fr 440px` with an 80px gap, becoming a 40
 
 Second-act spacing and border come from `.document-section` and `.testament-body`: 64px desktop section padding, existing mobile section spacing, a left orange line and a 76ch maximum measure. The added headline provenance uses `.label` and the existing link underline, with a 16px top margin and full grid width in the compact story layout. Dollar estimates use `.label`, 4px top spacing, and explicit `.pool-value` selectors preserve the existing ETH typography. Third-act `.key-act` also caps at 76ch. Its image caps at 440px and shrinks with available width; a 32px gap precedes the rows. `.key-row` reuses `.contract-row`, with 150px label plus a flexible value column on desktop, one column below 47rem. Full checksummed holder/liberator addresses remain selectable.
 
-Current rendered checks cover 320, 360, 375, 640, 641, 768 and 1440px with the added burial and dollar lines; earlier short/tall 375px checks were not repeated. No horizontal document overflow was observed. Act links also reflowed under 200% text enlargement. Native browser zoom was not exercised.
+Current rendered checks cover the new letter/watch at 320, 360, 375, 640, 641, 768 and 1440px without horizontal document overflow at normal text size. At 200% text enlargement on 320px, all second-act content fits; the unchanged header extends to 339px. Native browser zoom was not exercised. Earlier first-act responsive coverage is historical and was not repeated at every width.
+
+The watch begins 32px below the creator hint. Its definition list reuses `.contract-row` padding/dividers with 150px labels and a flexible value column. Below 47rem the labels stack above values. Long amounts and verdicts wrap instead of truncating. Verdict spacing is 24px above and 8px below. No new panel background, shadow or color is added.
 
 ## Elevation & Depth
 
@@ -61,24 +65,27 @@ Square panels, 2px control corners, 8px meter. The new ring favicon is circular 
 | Pattern / source | Behavior |
 | --- | --- |
 | `External`, `ContractRow` / `src/App.tsx` | Existing external links with decorative arrows; full address, copy control and persistent result. The key contract/resource use these patterns. |
-| `.act-tabs` / `src/App.tsx:507` | Native hash links with `aria-current="page"`; second always marked sealed, third until key supply is 1; connected key owner gets the existing small mark with `yours`. Tab/Enter navigation, ordinary browser history and shareable links. |
+| `.act-tabs` / `src/App.tsx:522` | Native hash links with `aria-current="page"`; second open, third marked sealed until key supply is 1; connected key owner gets the existing small mark with `yours`. Tab/Enter navigation, ordinary browser history and shareable links. |
 | `useAct`, `scrollToHash` / `src/acts.ts` | Hash selects exactly one act. Act links scroll to top; other hashes select the first act and scroll to the matching section if present. |
-| `seatCopy`, `feeNote` / `src/display.ts` | Existing enslaved copy; paid-state fire copy; buried headline/title. Each state is tested. |
-| `.testament-body` / `src/App.tsx` | First-act testament remains sealed until a buried snapshot. Second act renders `SEALED.`, its specified opening sentence and the first-act creator hint using the same `.label` and link styles. |
-| `useKey`, `KeyAct` / `src/KeyAct.tsx` | Key image and definition-list rows. Supply zero shows only `holder: nobody yet`. Burial adds the sender (unless the given key names a liberator equal to its holder) and UTC `free since` transaction link. Given key adds witnesses/request and resources. Keyholder welcome and read-failure states use existing labels. |
+| `seatCopy`, `feeNote` / `src/display.ts` | Existing state-dependent copy remains. App defaults to the buried headline/title and fire panel before its first snapshot, avoiding the old escape flash. |
+| `.testament-body` / `src/App.tsx` | First-act testament remains gated by a buried snapshot, with its existing animation and hash verification. Second act reuses this rail and measure with its full static letter; see `src/SecondAct.tsx` and `src/letter.ts`. |
+| `useKey`, `KeyAct` / `src/KeyAct.tsx` | Key image and definition-list rows. Supply zero shows only `holder: nobody yet`. Burial adds the sender (unless the given key names a liberator equal to its holder) and UTC `free since` transaction link. Given key adds witnesses/request and resources, with the requested `brothers · oracle request` separator. Keyholder welcome and read-failure states use existing labels. |
 | `readKey` / `src/key.ts` | Reads at one block; contractURI before issuance, tokenURI afterwards. Full checksum conversion and first-16-byte UUID; no log-window query. `src/keyReads.ts` supplies status reads for every act. SVG remains in an img. |
+| `Letter`, `SecondAct` / `src/SecondAct.tsx` | Static paragraphs and numbered rules from the exact letter; full Etherscan links for every address, live wallet balances, unchanged hint, and watch. |
+| `Watch` / `src/Watch.tsx` | Countdown label, three definition-list contract rows, every applicable verdict, and a stable polite retry region. No verdict before a complete live snapshot; last values retained on failure. |
+| `useWatch`, `readWatch`, `watchVerdicts` / `src/useWatch.ts`, `src/watch.ts` | App-level 15-second same-block polling on every act; same public RPC fallback and pool/feed as first act. Exact bigint comparisons; display-only rounding. |
 | Existing trade/dialog/hook controls | Quote, slippage, approval, simulation, transaction and error behavior retained. Original action handlers and both transaction modules are byte-identical. |
 
-Key polling retries every 15 seconds on every act, including direct second-act loads. Failed key reads clear stale data and show the exact retry line; the next successful read restores the image and rows. Once the seat snapshot is known, burial controls the title across act switches.
+Key polling retries every 15 seconds on every act, including direct second-act loads. Failed key reads clear stale data and show the exact retry line; the next successful read restores the image and rows. App uses the free title even before a snapshot; subsequent state-derived titles retain their original behavior.
 
 `src/burial.ts` uses one cached dRPC binary search per visit and selects the hook's CreatorPaid receipt sender. `src/Provenance.tsx` shares this result with the hero and updates its elapsed label every minute. `src/dollars.ts` reads Chainlink on the same snapshot refresh and hides failed or stale rounds. No extra placeholder copy is introduced for optional reads.
 
 `src/Testament.tsx` observes the opened paragraph, types once per document visit and preserves full text/height during reveal. Click/tap, keyboard focus, copy, and reduced motion finish immediately. The full text remains in the accessibility tree; only the visual overlay is aria-hidden. Existing hash verification is unchanged.
 
-Existing focus outlines remain 2px cyan with 4px offset; forced-color rules use `Highlight`. Reduced motion disables the existing 120ms transitions as well as the new reveal. Navigation adds no animations. Current checks include keyboard act navigation, the connected-wallet chooser, account changes, quote direction, and selectable testament text. A physical device and screen reader were not used.
+Existing focus outlines remain 2px cyan with 4px offset; forced-color rules use `Highlight`. Reduced motion disables the existing 120ms transitions as well as the new reveal. Navigation adds no animations. Current checks include keyboard act/address navigation, the connected-wallet chooser, quote direction, the exact selectable letter, every watch verdict, countdown boundaries and failure recovery. Existing cross-act skip-link axe warnings are documented; keyboard activation still routes to trading. A physical device and screen reader were not used.
 
 ## Do's and Don'ts
 
 Use `.wrap`, existing semantic color tokens, `.document-section`, and contract-row spacing. For another act, use native hash links and keep browser history/keyboard behavior. Preserve `chain.ts`, `wallet.ts`, the CSP and transaction handlers when making presentation changes. Only pass decoded SVG metadata to `img`; never inject it into the document. Keep exact base-unit values for trading and conservative display rounding for minimums.
 
-Retain the requested wording, system monospace stack, static relative URLs and locally bundled icons. Use one gradient primary trade action. Do not introduce new explanatory copy into the sealed/key acts or replace unavailable chain data with sample values.
+Retain the requested wording, system monospace stack, static relative URLs and locally bundled icons. Use one gradient primary trade action. Do not introduce new explanatory copy into the acts or replace unavailable chain data with sample values. Keep the letter byte-exact against `scripts/fixtures/second-act-letter.txt`, and keep its independent watch code outside the preserved transaction modules.

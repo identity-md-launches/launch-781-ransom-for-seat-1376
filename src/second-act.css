@@ -1,0 +1,45 @@
+/* The opened testament's measure, rail, palette and body type stay authoritative. */
+.manifesto.second-letter {
+  white-space: normal;
+}
+.second-letter > * {
+  margin: 0 0 1.9em;
+}
+.second-letter .letter-opening {
+  font: inherit;
+  letter-spacing: normal;
+  text-wrap: wrap;
+}
+.second-letter ol {
+  padding-inline-start: 3ch;
+}
+.letter-wallets p + p {
+  margin-block-start: 0.5em;
+}
+.letter-balance {
+  color: var(--muted);
+}
+.watch {
+  margin-block-start: var(--space-8);
+}
+.watch-rows {
+  margin: 0;
+}
+.watch .watch-row {
+  grid-template-columns: 150px minmax(0, 1fr);
+}
+.watch-row dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.watch-verdict {
+  margin-block: var(--space-6) var(--space-2);
+}
+.watch-verdict p {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 47rem) {
+  .watch .watch-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

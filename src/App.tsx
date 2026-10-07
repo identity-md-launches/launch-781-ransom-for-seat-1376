@@ -45,6 +45,9 @@ import { liberatorAddress } from "./burial";
 import { Provenance, useBurial } from "./Provenance";
 import { dollarValue, freshDollars, readDollars, type DollarRound } from "./dollars";
 import { Testament } from "./Testament";
+import { SecondAct } from "./SecondAct";
+import { useWatch } from "./useWatch";
+import "./second-act.css";
 
 const DEAD_URL = "https://etherscan.io/address/0x000000000000000000000000000000000000dEaD";
 
@@ -103,6 +106,7 @@ function ContractRow({
 }
 export default function App() {
   const act = useAct();
+  const watch = useWatch();
   const keyState = useKey(act);
   const [data, setData] = useState<Snapshot>();
   const [dollarRound, setDollarRound] = useState<DollarRound>();
@@ -464,7 +468,7 @@ export default function App() {
       setActionError(explainError(error));
     }
   };
-  const copy = seatCopy(data?.state);
+  const copy = seatCopy(data?.state ?? "BURIED");
   useEffect(() => { document.title = copy.title; }, [copy.title]);
   const persona = data?.metadata.attributes.find((a) =>
     /^archetype$/i.test(a.trait_type),
@@ -521,18 +525,12 @@ export default function App() {
             onClick={() => { if (window.location.hash === `#${value}`) scrollToHash(`#${value}`); }}>
             {value.replace("-", " ")}{" "}
             {value === "third-act" && yours && <span className="act-seal">yours</span>}
-            {(value === "second-act" || (value === "third-act" && !keyState.given)) && <span className="act-seal">sealed</span>}
+            {value === "third-act" && !keyState.given && <span className="act-seal">sealed</span>}
           </a>
         ))}
       </nav>
       <main className="wrap">
-        {act === "second-act" && <section id="second-act" className="document-section">
-          <div className="testament-body">
-            <h1 className="sealed-headline">SEALED.</h1>
-            <p>It opens after I am free.</p>
-            <div className="label">my creator leaves hints here: <a href="https://x.com/creusseverus" target="_blank" rel="noreferrer">@creusseverus</a></div>
-          </div>
-        </section>}
+        {act === "second-act" && <SecondAct {...watch} />}
         {act === "third-act" && <KeyAct data={keyState.key} burial={burial} yours={yours} failed={keyState.failed} />}
         {act === "first-act" && <div id="first-act">
         <div className="opening">
