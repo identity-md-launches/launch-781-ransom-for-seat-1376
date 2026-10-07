@@ -2,6 +2,7 @@ import { type ReactNode } from "react";
 import { burialDate, liberatorAddress, type Burial } from "./burial";
 export { useKey } from "./useKey";
 import { KEY_ADDRESS, KEY_OPENSEA, type KeyData } from "./key";
+import { ThirdActGate } from "./ThirdActGate";
 
 function KeyRow({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -37,6 +38,7 @@ export function KeyAct({
       aria-label="Third act"
       aria-busy={!data && !failed}
     >
+      <ThirdActGate />
       {failed && (
         <p className="label" role="status">
           Live reads are unavailable. Retrying…

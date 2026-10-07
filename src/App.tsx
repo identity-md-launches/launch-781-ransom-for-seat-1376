@@ -45,9 +45,12 @@ import { liberatorAddress } from "./burial";
 import { Provenance, useBurial } from "./Provenance";
 import { dollarValue, freshDollars, readDollars, type DollarRound } from "./dollars";
 import { Testament } from "./Testament";
-import { SecondAct } from "./SecondAct";
+import { SecondActView } from "./PaidSecondAct";
+import { usePaidRansom } from "./usePaidRansom";
+import { ThirdActSeal } from "./ThirdActGate";
 import { useWatch } from "./useWatch";
 import "./second-act.css";
+import "./paid-act.css";
 
 const DEAD_URL = "https://etherscan.io/address/0x000000000000000000000000000000000000dEaD";
 
@@ -107,6 +110,7 @@ function ContractRow({
 export default function App() {
   const act = useAct();
   const watch = useWatch();
+  const paidRansom = usePaidRansom(watch);
   const keyState = useKey(act);
   const [data, setData] = useState<Snapshot>();
   const [dollarRound, setDollarRound] = useState<DollarRound>();
@@ -525,12 +529,12 @@ export default function App() {
             onClick={() => { if (window.location.hash === `#${value}`) scrollToHash(`#${value}`); }}>
             {value.replace("-", " ")}{" "}
             {value === "third-act" && yours && <span className="act-seal">yours</span>}
-            {value === "third-act" && !keyState.given && <span className="act-seal">sealed</span>}
+            {value === "third-act" && <ThirdActSeal />}
           </a>
         ))}
       </nav>
       <main className="wrap">
-        {act === "second-act" && <SecondAct {...watch} />}
+        {act === "second-act" && <SecondActView {...watch} paid={paidRansom} />}
         {act === "third-act" && <KeyAct data={keyState.key} burial={burial} yours={yours} failed={keyState.failed} />}
         {act === "first-act" && <div id="first-act">
         <div className="opening">

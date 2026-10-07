@@ -1,0 +1,97 @@
+.paid-receipt {
+  margin-block-end: var(--space-6);
+  overflow-wrap: anywhere;
+}
+.paid-disclosure {
+  border-block-end: 1px solid var(--line);
+}
+.paid-disclosure summary {
+  cursor: pointer;
+  padding-block: var(--space-3);
+  min-height: 44px;
+  font-size: var(--small);
+}
+.paid-disclosure summary:focus-visible,
+.sell-chart svg:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+.paid-disclosure > .letter-wallets {
+  font-size: var(--small);
+  overflow-wrap: anywhere;
+}
+.paid-disclosure > :not(summary) {
+  margin-block-end: var(--space-6);
+}
+.paid-section {
+  margin-block-start: var(--space-8);
+}
+.paid-section > h2 {
+  margin-block-end: var(--space-3);
+}
+.offer-rows .offer-row {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.sell-percent {
+  text-align: end;
+  margin-block: var(--space-2);
+}
+.sell-status {
+  margin-block-start: var(--space-4);
+}
+.sell-chart {
+  margin: 0;
+  min-width: 0;
+}
+.sell-chart svg {
+  display: block;
+  width: 100%;
+  height: 234px;
+  overflow: visible;
+  touch-action: pan-y;
+}
+.sell-chart text {
+  fill: var(--muted);
+  font-size: 12px;
+}
+.chart-axis {
+  stroke: var(--line);
+}
+.chart-threshold {
+  stroke: var(--muted);
+  stroke-dasharray: 5 5;
+}
+.chart-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.chart-point {
+  fill: var(--accent);
+}
+.chart-detail {
+  min-height: 3.2em;
+  overflow-wrap: anywhere;
+}
+.third-act-gate {
+  margin-block-end: var(--space-8);
+}
+@media (forced-colors: active) {
+  .paid-disclosure summary:focus-visible,
+  .sell-chart svg:focus-visible {
+    outline-color: Highlight;
+  }
+  .sell-chart text {
+    fill: CanvasText;
+  }
+  .chart-line,
+  .chart-axis,
+  .chart-threshold {
+    stroke: CanvasText;
+  }
+  .chart-point {
+    fill: CanvasText;
+  }
+}
