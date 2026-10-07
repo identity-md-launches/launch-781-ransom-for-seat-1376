@@ -16,7 +16,7 @@ for name in ['src/chain.ts', 'src/wallet.ts', 'package.json', 'package-lock.json
     report[name] = hashlib.sha256(data).hexdigest()
 old = baseline('src/App.tsx').decode()
 new = (root/'src/App.tsx').read_text()
-old_handlers = old.split('  const setAmountValue =', 1)[1].split('  const persona =', 1)[0]
+old_handlers = old.split('  const setAmountValue =', 1)[1].split('  const copy = seatCopy', 1)[0]
 new_handlers = new.split('  const setAmountValue =', 1)[1].split('  const copy = seatCopy', 1)[0]
 assert new_handlers == old_handlers, 'Trade, wallet action or hook action handler changed'
 report['appActionHandlers'] = hashlib.sha256(new_handlers.encode()).hexdigest()

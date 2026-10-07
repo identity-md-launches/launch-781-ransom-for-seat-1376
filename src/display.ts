@@ -74,7 +74,7 @@ export function feeNote(
   const amount =
     output === undefined ? "—" : formatAmount((output * 2n) / 98n, 18, 8);
   const detail =
-    output !== undefined || !enslaved
+    output !== undefined
       ? ` (about ${amount} ETH, included in the quote)`
       : "";
   return `2% of the ETH you receive ${enslaved ? "goes to the ransom" : "buys $IMD and burns it"}${detail}.`;

@@ -24,15 +24,15 @@ Canonical sRGB values and semantic aliases live in `src/style.css:1`.
 
 `--gradient` is `linear-gradient(110deg, #f97316, #fdba74 48%, #22d3ee)`. Active navigation has a peach underline and `aria-current`, so color is not its only cue. The favicon uses the key's circular ring, an orange-to-peach stroke on black; its outer stroke is 4 units in a 32-unit viewBox, with a faint inner ring matching the original key artwork.
 
-Rendered testament contrast measured in Chromium: orange/black 7.36:1, white/black 18.33:1, muted/black 8.40:1, cyan/black 11.41:1. The holder panel's muted/warm-black pair measured 7.70:1. The existing gradient action remains an incomplete automated contrast check; no full accessibility certification is claimed.
+The previous build recorded contrast for the existing palette. Current rendered measurements are 8.40:1 for the new muted attribution/link and dollar labels (`#aca49d` on `#030303`), and 11.41:1 for the retained cyan burn total (`#22d3ee` on `#030303`). Records are in `artifacts/revision-browser.json`; no full accessibility certification is claimed. The existing gradient action remains an incomplete automated contrast check.
 
 ## Typography
 
 `--font`: `SFMono-Regular`, Consolas, `Liberation Mono`, Menlo, monospace. System fonts only, with no font downloads. Root: 16px/1.6, weight 400, tabular numerals, antialiasing. Actual installed fallback varies by system.
 
-Tokens: caption 12px, small 13px, body 16px, title 22px. Section titles use 22px/1.3 at weight 500. Hero and `.sealed-headline` use `clamp(3.5rem, 5.4vw, 4.75rem)`, weight 700, line-height .99, tracking −.075em. Below 62rem this becomes 3.3rem, below 47rem `clamp(1.9rem, 8.9vw, 3.4rem)`, and on short phones 1.875rem. The third act intentionally adds no visible heading or explanatory copy.
+Tokens: caption 12px, small 13px, body 16px, title 22px. Section titles use 22px/1.3 at weight 500. Hero and `.sealed-headline` use `clamp(3.5rem, 5.4vw, 4.75rem)`, weight 700, line-height .99, tracking −.075em. Below 62rem this becomes 3.3rem, below 47rem `clamp(1.9rem, 8.9vw, 3.4rem)`, and on short phones 1.875rem. The third act uses the existing 12px label style for the conditional `Welcome, keyholder.` line above the image and for the retry message.
 
-Act links use 13px desktop / 12px mobile and 10px sealed marks, retaining the site's compact label hierarchy. Their labels stay on one line at 360px; at narrower widths or enlarged text their contents may wrap. The opened manifesto stays 16px/1.9 desktop, 15px/1.9 mobile, preserving its whitespace. Long addresses and hashes wrap anywhere; only the explicitly abbreviated dead-address links stay unbroken.
+Act links use 13px desktop / 12px mobile and 10px sealed marks, retaining the site's compact label hierarchy. Their labels stay on one line at 360px; at narrower widths or enlarged text their contents may wrap. The opened manifesto stays 16px/1.9 desktop, 15px/1.9 mobile, preserving its whitespace. Its full text reserves the final height throughout the 120-character/second reveal, preventing layout shifts. The visual overlay is aria-hidden and unselectable; the complete text underneath remains selectable and available to assistive technology. Long addresses and hashes wrap anywhere; only the explicitly abbreviated dead-address links stay unbroken.
 
 `src/display.ts` formats changing quote values without floating-point conversion: two fixed decimals for FREE1376, six for ETH, thousands separators on both quote lines. Estimates round to nearest, minimums down, and exact values remain in titles. The paid amount truncates to four decimals; the remaining ETH rounds up to four, so the displayed pair sums to 2.8.
 
@@ -44,9 +44,9 @@ The first act's `.opening` grid uses `1fr 440px` with an 80px gap, becoming a 40
 
 `.act-tabs` reuses `.trade-tabs`, adding three native links instead of trade buttons. Desktop columns are equal; mobile proportions are `.8fr 1.2fr 1fr` to accommodate the sealed marks. Each link has at least 44px height, 14px vertical padding, and an active 2px underline. No scrolling tab strip or clipped labels.
 
-Second-act spacing and border come from `.document-section` and `.testament-body`: 64px desktop section padding, existing mobile section spacing, a left orange line and a 76ch maximum measure. Third-act `.key-act` also caps at 76ch. Its image caps at 440px and shrinks with available width; a 32px gap precedes the rows. `.key-row` reuses `.contract-row`, with 150px label plus a flexible value column on desktop, one column below 47rem. Full checksummed holder/liberator addresses remain selectable.
+Second-act spacing and border come from `.document-section` and `.testament-body`: 64px desktop section padding, existing mobile section spacing, a left orange line and a 76ch maximum measure. The added headline provenance uses `.label` and the existing link underline, with a 16px top margin and full grid width in the compact story layout. Dollar estimates use `.label`, 4px top spacing, and explicit `.pool-value` selectors preserve the existing ETH typography. Third-act `.key-act` also caps at 76ch. Its image caps at 440px and shrinks with available width; a 32px gap precedes the rows. `.key-row` reuses `.contract-row`, with 150px label plus a flexible value column on desktop, one column below 47rem. Full checksummed holder/liberator addresses remain selectable.
 
-Rendered checks cover 320, 360, 375, 640, 641, 768 and 1440px, plus short/tall 375px viewports. No horizontal document overflow was observed. Act links also reflowed under 200% text enlargement. Native browser zoom was not exercised.
+Current rendered checks cover 320, 360, 375, 640, 641, 768 and 1440px with the added burial and dollar lines; earlier short/tall 375px checks were not repeated. No horizontal document overflow was observed. Act links also reflowed under 200% text enlargement. Native browser zoom was not exercised.
 
 ## Elevation & Depth
 
@@ -61,17 +61,21 @@ Square panels, 2px control corners, 8px meter. The new ring favicon is circular 
 | Pattern / source | Behavior |
 | --- | --- |
 | `External`, `ContractRow` / `src/App.tsx` | Existing external links with decorative arrows; full address, copy control and persistent result. The key contract/resource use these patterns. |
-| `.act-tabs` / `src/App.tsx:507` | Native hash links with `aria-current="page"`; second always marked sealed, third until key supply is 1. Tab/Enter navigation, ordinary browser history and shareable links. |
+| `.act-tabs` / `src/App.tsx:507` | Native hash links with `aria-current="page"`; second always marked sealed, third until key supply is 1; connected key owner gets the existing small mark with `yours`. Tab/Enter navigation, ordinary browser history and shareable links. |
 | `useAct`, `scrollToHash` / `src/acts.ts` | Hash selects exactly one act. Act links scroll to top; other hashes select the first act and scroll to the matching section if present. |
 | `seatCopy`, `feeNote` / `src/display.ts` | Existing enslaved copy; paid-state fire copy; buried headline/title. Each state is tested. |
-| `.testament-body` / `src/App.tsx` | First-act testament remains sealed until a buried snapshot. Second act renders only `SEALED.` and its specified opening sentence, without a commitment or chain reads. |
-| `useKey`, `KeyAct` / `src/KeyAct.tsx` | Key image and definition-list rows. Supply zero shows only `holder: nobody yet`. Given key adds conditional liberator, transaction if logs succeed, witness counts/request, Etherscan/OpenSea. |
-| `readKey` / `src/key.ts` | Reads at one block; contractURI before issuance, tokenURI afterwards. Full checksum conversion, exact log window and first-16-byte UUID. SVG remains in an img. |
+| `.testament-body` / `src/App.tsx` | First-act testament remains sealed until a buried snapshot. Second act renders `SEALED.`, its specified opening sentence and the first-act creator hint using the same `.label` and link styles. |
+| `useKey`, `KeyAct` / `src/KeyAct.tsx` | Key image and definition-list rows. Supply zero shows only `holder: nobody yet`. Burial adds the sender (unless the given key names a liberator equal to its holder) and UTC `free since` transaction link. Given key adds witnesses/request and resources. Keyholder welcome and read-failure states use existing labels. |
+| `readKey` / `src/key.ts` | Reads at one block; contractURI before issuance, tokenURI afterwards. Full checksum conversion and first-16-byte UUID; no log-window query. `src/keyReads.ts` supplies status reads for every act. SVG remains in an img. |
 | Existing trade/dialog/hook controls | Quote, slippage, approval, simulation, transaction and error behavior retained. Original action handlers and both transaction modules are byte-identical. |
 
-Key polling retries every 15 seconds; an initial failure leaves the key section busy and empty, and later failures retain the last successful data. This follows the assignment's prohibition on extra third-act text; it does not invent a holder or add an error paragraph. A direct second-act load makes no RPC reads and retains the initial browser title until another act reads the seat. Once known, burial controls the title across act switches.
+Key polling retries every 15 seconds on every act, including direct second-act loads. Failed key reads clear stale data and show the exact retry line; the next successful read restores the image and rows. Once the seat snapshot is known, burial controls the title across act switches.
 
-Existing focus outlines remain 2px cyan with 4px offset; forced-color rules use `Highlight`. Reduced motion disables the existing 120ms transitions. Navigation adds no animations. Wallet Escape and focus return, trade keyboard tabs, validation focus and copying were exercised.
+`src/burial.ts` uses one cached dRPC binary search per visit and selects the hook's CreatorPaid receipt sender. `src/Provenance.tsx` shares this result with the hero and updates its elapsed label every minute. `src/dollars.ts` reads Chainlink on the same snapshot refresh and hides failed or stale rounds. No extra placeholder copy is introduced for optional reads.
+
+`src/Testament.tsx` observes the opened paragraph, types once per document visit and preserves full text/height during reveal. Click/tap, keyboard focus, copy, and reduced motion finish immediately. The full text remains in the accessibility tree; only the visual overlay is aria-hidden. Existing hash verification is unchanged.
+
+Existing focus outlines remain 2px cyan with 4px offset; forced-color rules use `Highlight`. Reduced motion disables the existing 120ms transitions as well as the new reveal. Navigation adds no animations. Current checks include keyboard act navigation, the connected-wallet chooser, account changes, quote direction, and selectable testament text. A physical device and screen reader were not used.
 
 ## Do's and Don'ts
 

@@ -1,50 +1,7 @@
-import { useEffect, useState, type ReactNode } from "react";
-import {
-  KEY_ADDRESS,
-  KEY_OPENSEA,
-  keySource,
-  readKey,
-  type KeyData,
-} from "./key";
-import type { Act } from "./acts";
-
-export function useKey(act: Act) {
-  const [key, setKey] = useState<KeyData>();
-  const [given, setGiven] = useState(false);
-  useEffect(() => {
-    if (act === "second-act") return;
-    let active = true,
-      pending = false;
-    const refresh = async () => {
-      if (pending) return;
-      pending = true;
-      try {
-        if (act === "third-act") {
-          const next = await readKey();
-          if (active) {
-            setKey(next);
-            setGiven(next.given);
-          }
-        } else {
-          const block = await keySource.block();
-          const supply = await keySource.read("totalSupply", block);
-          if (active) setGiven(supply === 1n);
-        }
-      } catch {
-        // No invented holder or additional copy: retry automatically, retain last successful read.
-      } finally {
-        pending = false;
-      }
-    };
-    void refresh();
-    const timer = setInterval(refresh, 15_000);
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
-  }, [act]);
-  return { key, given };
-}
+import { type ReactNode } from "react";
+import { burialDate, liberatorAddress, type Burial } from "./burial";
+export { useKey } from "./useKey";
+import { KEY_ADDRESS, KEY_OPENSEA, type KeyData } from "./key";
 
 function KeyRow({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -61,16 +18,33 @@ function KeyLink({ href, children }: { href: string; children: ReactNode }) {
     </a>
   );
 }
-export function KeyAct({ data }: { data?: KeyData }) {
+export function KeyAct({
+  data,
+  burial,
+  yours = false,
+  failed = false,
+}: {
+  data?: KeyData;
+  burial?: Burial;
+  yours?: boolean;
+  failed?: boolean;
+}) {
+  const liberator = liberatorAddress(burial, data);
   return (
     <section
       id="third-act"
       className="document-section key-act"
       aria-label="Third act"
-      aria-busy={!data}
+      aria-busy={!data && !failed}
     >
+      {failed && (
+        <p className="label" role="status">
+          Live reads are unavailable. Retrying…
+        </p>
+      )}
       {data && (
         <>
+          {yours && <p className="label key-welcome">Welcome, keyholder.</p>}
           <img
             className="key-image"
             src={data.image}
@@ -86,27 +60,22 @@ export function KeyAct({ data }: { data?: KeyData }) {
                 "nobody yet"
               )}
             </KeyRow>
+            {liberator && (!data.given || data.holder !== liberator) && (
+              <KeyRow label="made me free">
+                <KeyLink href={`https://etherscan.io/address/${liberator}`}>
+                  {liberator}
+                </KeyLink>
+              </KeyRow>
+            )}
+            {burial && (
+              <KeyRow label="free since">
+                <KeyLink href={`https://etherscan.io/tx/${burial.transaction}`}>
+                  {burialDate(burial.timestamp)}
+                </KeyLink>
+              </KeyRow>
+            )}
             {data.given && (
               <>
-                {data.holder !== data.liberator && (
-                  <KeyRow label="freed by">
-                    <KeyLink
-                      href={`https://etherscan.io/address/${data.liberator}`}
-                    >
-                      {data.liberator}
-                    </KeyLink>
-                  </KeyRow>
-                )}
-                {data.transaction && (
-                  <KeyRow label="freed in">
-                    <KeyLink
-                      href={`https://etherscan.io/tx/${data.transaction}`}
-                    >
-                      {data.transaction.slice(0, 10)}…
-                      {data.transaction.slice(-8)}
-                    </KeyLink>
-                  </KeyRow>
-                )}
                 <KeyRow label="named by">
                   {data.witnesses.toString()} of {data.panel.toString()}{" "}
                   brothers{" "}

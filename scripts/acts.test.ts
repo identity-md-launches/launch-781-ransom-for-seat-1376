@@ -141,7 +141,7 @@ const uri =
 const holder = "0xdf90937e07c60108b505fe3c542ab782e0a19ae5";
 const other = "0x000000000000000000000000000000000000dead";
 const hash = ("0x" + "ab".repeat(32)) as Hex;
-function source(given: boolean, liberator = holder, fail = false) {
+function source(given: boolean, liberator = holder) {
   const calls: string[] = [];
   const values: Record<string, unknown> = {
     totalSupply: given ? 1n : 0n,
@@ -152,8 +152,6 @@ function source(given: boolean, liberator = holder, fail = false) {
     witnesses: 7n,
     panel: 11n,
     oracleRequest: hash,
-    windowFrom: 100n,
-    windowTo: 200n,
   };
   const reader: KeySource = {
     block: async () => 123n,
@@ -162,14 +160,7 @@ function source(given: boolean, liberator = holder, fail = false) {
       assert.equal(block, 123n);
       return values[name] as Awaited<ReturnType<KeySource["read"]>>;
     },
-    logs: async (from, to) => {
-      assert.equal(from, 100n);
-      assert.equal(to, 200n);
-      if (fail) throw new Error("logs unavailable");
-      return [{ transactionHash: hash, removed: false }] as Awaited<
-        ReturnType<KeySource["logs"]>
-      >;
-    },
+
   };
   return { reader, calls };
 }
@@ -187,13 +178,12 @@ test("not given: contract image and nobody row only, no token or provenance read
     /<svg|<script|freed by|freed in|named by|OpenSea|Etherscan/,
   );
 });
-for (const [label, liberator, fail] of [
-  ["same holder", holder, false],
-  ["transferred key", other, false],
-  ["failed log read", other, true],
+for (const [label, liberator] of [
+  ["same holder", holder],
+  ["transferred key", other],
 ] as const) {
   test(`given: ${label}`, async () => {
-    const { reader, calls } = source(true, liberator, fail),
+    const { reader, calls } = source(true, liberator),
       k = await readKey(reader);
     assert.ok(k.given);
     assert.equal(k.holder, getAddress(holder));
@@ -201,8 +191,8 @@ for (const [label, liberator, fail] of [
     assert.ok(calls.includes("tokenURI"));
     assert.ok(!calls.includes("contractURI"));
     const html = renderToStaticMarkup(createElement(KeyAct, { data: k }));
-    assert.equal(html.includes("freed by:"), liberator !== holder);
-    assert.equal(html.includes("freed in:"), !fail);
+    assert.equal(html.includes("made me free:"), liberator !== holder);
+    assert.ok(!calls.some((name) => name.startsWith("window")));
     assert.ok(
       html.includes(`https://etherscan.io/address/${getAddress(holder)}`),
     );

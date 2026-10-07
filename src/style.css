@@ -635,11 +635,11 @@ h1 span {
 .live-row .label {
   margin-block-end: 8px;
 }
-.live-row > div > p:last-child {
+.live-row > div > .pool-value {
   font-size: 1.375rem;
   letter-spacing: -0.04em;
 }
-.live-row > div > p:last-child span {
+.live-row > div > .pool-value span {
   font-size: var(--caption);
   letter-spacing: 0;
   color: var(--muted);
@@ -1058,10 +1058,10 @@ footer {
     gap: 8px 16px;
     align-items: baseline;
   }
-  .live-row > div:last-child > p:last-child {
+  .live-row > div:last-child > .pool-value {
     font-size: var(--small);
   }
-  .live-row > div > p:last-child {
+  .live-row > div > .pool-value {
     font-size: 1.125rem;
   }
   .live-row .label {
@@ -1264,4 +1264,16 @@ footer {
   .act-tabs { grid-template-columns: 0.8fr 1.2fr 1fr; }
   .act-tabs > a { font-size: 0.75rem; column-gap: 4px; }
   .key-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+.made-free { margin-block-start: 16px; grid-column: 1 / -1; }
+.live-row .dollar-value { margin-block: 4px 0; letter-spacing: 0; }
+.key-welcome { margin-block-end: 16px; }
+.testament-typing { position: relative; }
+.testament-full.typing { color: transparent; }
+.testament-full.typing::selection { color: var(--text); }
+.testament-reveal { position: absolute; inset: 0; pointer-events: none; user-select: none; }
+@media (prefers-reduced-motion: reduce) {
+  .testament-full.typing { color: inherit; }
+  .testament-reveal { display: none; }
 }

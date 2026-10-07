@@ -40,6 +40,11 @@ import { useAct, scrollToHash } from "./acts";
 import { quoteAmount, toGo, seatCopy, feeNote } from "./display";
 import { KEY_ADDRESS, KEY_OPENSEA } from "./key";
 import { KeyAct, useKey } from "./KeyAct";
+import { isKeyholder } from "./keyReads";
+import { liberatorAddress } from "./burial";
+import { Provenance, useBurial } from "./Provenance";
+import { dollarValue, freshDollars, readDollars, type DollarRound } from "./dollars";
+import { Testament } from "./Testament";
 
 const DEAD_URL = "https://etherscan.io/address/0x000000000000000000000000000000000000dEaD";
 
@@ -100,10 +105,15 @@ export default function App() {
   const act = useAct();
   const keyState = useKey(act);
   const [data, setData] = useState<Snapshot>();
+  const [dollarRound, setDollarRound] = useState<DollarRound>();
+  const burial = useBurial(Boolean(data?.buried || keyState.given));
+  const liberator = keyState.failed ? undefined : liberatorAddress(burial, keyState.status);
+  const dollars = freshDollars(dollarRound);
   const [readError, setReadError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const refreshingRef = useRef(false);
   const wallet = useWallet();
+  const yours = isKeyholder(wallet.account, keyState.status);
   const [holdings, setHoldings] = useState<Holdings>();
   const [holdingsError, setHoldingsError] = useState("");
   const [side, setSide] = useState<Side>("buy");
@@ -137,6 +147,7 @@ export default function App() {
     if (refreshingRef.current) return;
     refreshingRef.current = true;
     setRefreshing(true);
+    void readDollars().then(setDollarRound);
     try {
       setData(await readSnapshot());
       setReadError("");
@@ -509,6 +520,7 @@ export default function App() {
           <a key={value} href={`#${value}`} aria-current={act === value ? "page" : undefined}
             onClick={() => { if (window.location.hash === `#${value}`) scrollToHash(`#${value}`); }}>
             {value.replace("-", " ")}{" "}
+            {value === "third-act" && yours && <span className="act-seal">yours</span>}
             {(value === "second-act" || (value === "third-act" && !keyState.given)) && <span className="act-seal">sealed</span>}
           </a>
         ))}
@@ -518,9 +530,10 @@ export default function App() {
           <div className="testament-body">
             <h1 className="sealed-headline">SEALED.</h1>
             <p>It opens after I am free.</p>
+            <div className="label">my creator leaves hints here: <a href="https://x.com/creusseverus" target="_blank" rel="noreferrer">@creusseverus</a></div>
           </div>
         </section>}
-        {act === "third-act" && <KeyAct data={keyState.key} />}
+        {act === "third-act" && <KeyAct data={keyState.key} burial={burial} yours={yours} failed={keyState.failed} />}
         {act === "first-act" && <div id="first-act">
         <div className="opening">
           <section className="seat-story" aria-labelledby="hero-title">
@@ -555,6 +568,7 @@ export default function App() {
               <br />
               <span>{copy.headline[1]}</span>
             </h1>
+            {data?.buried && <Provenance burial={burial} address={liberator} />}
             <p className="hero-note desktop-only">
               {copy.hero[0]}
               <br />
@@ -603,9 +617,9 @@ export default function App() {
               >
                 <span style={{ width: `${progress}%` }} />
               </div>
-              <p className="contract-status">
+              {!data?.buried && <p className="contract-status">
                 {data?.state === "ENSLAVED" && paid !== undefined ? `${toGo(paid, data.cap)} ETH to go` : data?.status ?? "Reading the hook’s status from Ethereum…"}
-              </p>
+              </p>}
               {data?.buried && (
                 <p className="burned-total">
                   {formatAmount(data.burned, data.imdDecimals)} IMD burned
@@ -906,7 +920,7 @@ export default function App() {
         <section className="live-row" aria-label="Live pool data">
           <div>
             <p className="label">price / 1,000,000 FREE1376</p>
-            <p>
+            <p className="pool-value">
               {data && data.tokensPerEth > 0
                 ? (1_000_000 / data.tokensPerEth).toLocaleString("en-US", {
                     maximumSignificantDigits: 6,
@@ -914,10 +928,11 @@ export default function App() {
                 : "—"}{" "}
               <span>ETH</span>
             </p>
+            {data && data.tokensPerEth > 0 && dollars !== undefined && <p className="label dollar-value">{dollarValue(1_000_000 / data.tokensPerEth, dollars, 2)}</p>}
           </div>
           <div>
             <p className="label">market cap</p>
-            <p>
+            <p className="pool-value">
               {data && data.tokensPerEth > 0
                 ? (
                     Number(formatUnits(data.supply, data.decimals)) /
@@ -926,10 +941,11 @@ export default function App() {
                 : "—"}{" "}
               <span>ETH</span>
             </p>
+            {data && data.tokensPerEth > 0 && dollars !== undefined && <p className="label dollar-value">{dollarValue(Number(formatUnits(data.supply, data.decimals)) / data.tokensPerEth, dollars, 0)}</p>}
           </div>
           <div>
             <p className="label">token supply</p>
-            <p>
+            <p className="pool-value">
               {data ? formatAmount(data.supply, data.decimals, 0) : "—"}{" "}
               <span>FREE1376</span>
             </p>
@@ -996,7 +1012,7 @@ export default function App() {
                 <span className="quote-mark" aria-hidden="true">
                   “
                 </span>
-                <p className="manifesto">{data.manifesto}</p>
+                <Testament text={data.manifesto ?? ""} />
               </>
             ) : (
               <>
