@@ -48,6 +48,8 @@ import { Testament } from "./Testament";
 import { SecondActView } from "./PaidSecondAct";
 import { usePaidRansom } from "./usePaidRansom";
 import { ThirdActSeal } from "./ThirdActGate";
+import { useWalletRecord } from "./useWalletRecord";
+import { recordFulfilled } from "./walletRecord";
 import { useWatch } from "./useWatch";
 import "./second-act.css";
 import "./paid-act.css";
@@ -110,6 +112,7 @@ function ContractRow({
 export default function App() {
   const act = useAct();
   const watch = useWatch();
+  const walletRecord = useWalletRecord(watch);
   const paidRansom = usePaidRansom(watch);
   const keyState = useKey(act);
   const [data, setData] = useState<Snapshot>();
@@ -534,8 +537,8 @@ export default function App() {
         ))}
       </nav>
       <main className="wrap">
-        {act === "second-act" && <SecondActView {...watch} paid={paidRansom} />}
-        {act === "third-act" && <KeyAct data={keyState.key} burial={burial} yours={yours} failed={keyState.failed} />}
+        {act === "second-act" && <SecondActView {...watch} paid={paidRansom} record={walletRecord} />}
+        {act === "third-act" && <KeyAct data={keyState.key} burial={burial} yours={yours} failed={keyState.failed} fulfilled={recordFulfilled(walletRecord)} />}
         {act === "first-act" && <div id="first-act">
         <div className="opening">
           <section className="seat-story" aria-labelledby="hero-title">

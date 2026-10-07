@@ -13,20 +13,18 @@ export type PaidHistory = { paid?: PaidBlock; points: SellPoint[] };
 export type PaidState = {
   history?: PaidHistory;
   live?: SellReading;
-  allowed: boolean;
   historyPending: boolean;
   historyFailed: boolean;
   liveFailed: boolean;
 };
 export const initialPaidState: PaidState = {
-  allowed: false,
   historyPending: true,
   historyFailed: false,
   liveFailed: false,
 };
 
-export const secondRansomPaid = (data?: WatchSnapshot) =>
-  !!data && watchVerdicts(data).includes("BURNED. ALL OF IT.");
+export const secondRansomPaid = (data?: WatchSnapshot, paid?: PaidBlock) =>
+  !!paid || (!!data && watchVerdicts(data).includes("BURNED. ALL OF IT."));
 export const sellAmount = (balance: bigint) => (balance < M0 ? balance : M0);
 export const maySell = (out: bigint) => out >= CASH_OUT;
 export const sellPercentage = (out: bigint) =>
@@ -39,20 +37,7 @@ export const paidTime = (timestamp: bigint) =>
 export const marketDollars = (value: number) =>
   value.toLocaleString("en-US", { maximumFractionDigits: 0 });
 
-export function offerRules(
-  balance: bigint,
-  allowed: boolean,
-  historyKnown = true,
-) {
-  const bought = balance > M0 ? "✗ HE BOUGHT AGAIN." : "✓";
-  const sold =
-    balance < M0 && !allowed ? (historyKnown ? "✗ HE SOLD EARLY." : "—") : "✓";
-  return [
-    `1. keeps only the 12.16M · ${bought}`,
-    `2. never buys again · ${bought}`,
-    `3. sells nothing before he may · ${sold}`,
-  ];
-}
+export { recordOfferRules as offerRules } from "./walletRecord";
 
 // Reserve the final slot for the live reading, including in the 48th hour.
 export function chartTimes(start: bigint, end: bigint): bigint[] {

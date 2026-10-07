@@ -7,6 +7,7 @@ import {
   watchTokens,
   type WatchState,
 } from "./watch";
+import type { RecordState } from "./walletRecord";
 import { Watch } from "./Watch";
 
 function AddressLink({
@@ -89,7 +90,7 @@ export function Letter({ balances }: { balances?: readonly bigint[] }) {
   );
 }
 
-export function SecondAct(state: WatchState) {
+export function SecondAct(state: WatchState & { record?: RecordState }) {
   return (
     <section id="second-act" className="document-section">
       <div className="testament-body">

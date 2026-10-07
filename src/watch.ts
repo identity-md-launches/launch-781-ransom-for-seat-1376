@@ -130,7 +130,7 @@ export function watchVerdicts(
   data: WatchSnapshot,
   now = Math.floor(Date.now() / 1000),
 ) {
-  const { nine, burned, out, gained, belowCashOut } = watchTotals(data);
+  const { nine, burned, out, gained } = watchTotals(data);
   const lines: string[] = [];
   if (out === 0n) lines.push(now < DEADLINE ? "WAITING." : "HELD.");
   if (out > 0n && burned >= out)
@@ -139,9 +139,6 @@ export function watchVerdicts(
     lines.push(
       gained >= out - burned ? "CARRIED TO HIS OWN WALLET." : "SOLD OR MOVED.",
     );
-  if (gained > (out > burned ? out - burned : 0n))
-    lines.push("HE BOUGHT AGAIN.");
-  if (data.main < M0 && belowCashOut) lines.push("HE SOLD EARLY.");
   return lines;
 }
 

@@ -19,9 +19,10 @@ import {
   tokenAbi,
 } from "./chain";
 import { ETH_USD_FEED, feedAbi, freshDollars } from "./dollars";
+import { burnedAt } from "./burnReads";
+import { findBurnPaidBlock } from "./burnHistory";
 import { HIS_WALLET, M0, NINE_WALLETS } from "./watch";
 import {
-  PAID_START,
   chartTimes,
   sellAmount,
   type PaidBlock,
@@ -222,30 +223,18 @@ export type HistorySource = {
   latest: () => Promise<PaidBlock>;
   block: (number: bigint) => Promise<PaidBlock>;
   total: (number: bigint) => Promise<bigint>;
+  burned: (number: bigint) => Promise<bigint>;
   point: (block: PaidBlock) => Promise<SellPoint>;
 };
 export const historySource: HistorySource = {
   latest: () => archive.getBlock(),
   block: (blockNumber) => archive.getBlock({ blockNumber }),
   total: nineTotal,
+  burned: burnedAt,
   point: (block) => readSellPoint(block, M0),
 };
 
-export async function findPaidBlock(
-  latest: PaidBlock,
-  source: Pick<HistorySource, "total" | "block">,
-): Promise<PaidBlock | undefined> {
-  if (latest.number < PAID_START || (await source.total(latest.number)) !== 0n)
-    return;
-  let low = PAID_START,
-    high = latest.number;
-  while (low < high) {
-    const middle = (low + high) / 2n;
-    if ((await source.total(middle)) === 0n) high = middle;
-    else low = middle + 1n;
-  }
-  return low === latest.number ? latest : source.block(low);
-}
+export const findPaidBlock = findBurnPaidBlock;
 
 // Find the last block at/before the requested UTC hour. Interpolation avoids
 // hundreds of header requests on Ethereum's approximately twelve-second slots;
@@ -284,10 +273,12 @@ export async function blockAtTime(
 
 export async function readPaidHistory(
   source = historySource,
+  onPaid?: (paid: PaidBlock) => void,
 ): Promise<PaidHistory> {
   const latest = await source.latest();
   const paid = await findPaidBlock(latest, source);
   if (!paid) return { points: [] };
+  onPaid?.(paid);
   const headers = new Map<bigint, Promise<PaidBlock>>();
   const block = (number: bigint) => {
     if (!headers.has(number)) headers.set(number, source.block(number));
@@ -295,10 +286,10 @@ export async function readPaidHistory(
   };
   const points: SellPoint[] = [];
   const seen = new Set<bigint>();
-  for (const time of chartTimes(paid.timestamp, latest.timestamp).slice(
-    0,
-    -1,
-  )) {
+  const times = chartTimes(paid.timestamp, latest.timestamp);
+  // Keep the origin even when payment happens in this visit's latest block;
+  // otherwise later live polls would replace the chart's only starting point.
+  for (const time of times.length === 1 ? times : times.slice(0, -1)) {
     try {
       const at = await blockAtTime(time, paid, latest, block);
       if (seen.has(at.number)) continue;

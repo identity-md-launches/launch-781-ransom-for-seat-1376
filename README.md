@@ -1,10 +1,10 @@
 # FREE1376 — Seat #1376
 
-Static React/TypeScript/Vite continuation of job `5291e465-6534-454e-8c90-2bf9c2454e33`. Publication name remains **free1376**, hosted as **free1376.site.identitymd.eth** at https://free1376.site.identitymd.eth.limo. This revision adds the second ransom's paid state and keeps the third act sealed until a later build records sales. No contract or token is deployed, replaced, or minted.
+Static React/TypeScript/Vite continuation of job `aadacea4-5f52-423f-966c-45b8c630b44d`. Publication name remains **free1376**, at **free1376.site.identitymd.eth** / https://free1376.site.identitymd.eth.limo. This revision makes the second ransom stay paid and uses the actual wallet record for buys, early sales, proceeds and fulfillment. No contract or token is deployed, replaced or minted.
 
-## Install, preview, rebuild
+## Install, preview and rebuild
 
-Use Node 22+ and the existing manifest/lockfile:
+Use Node 22+ and the unchanged manifest and lockfile:
 
 ```sh
 npm ci
@@ -14,72 +14,53 @@ npm run build
 npm run preview -- --host 127.0.0.1
 ```
 
-Open Vite's printed URL. The complete static export is `dist/`: HTML, hashed JavaScript/CSS, icons, social image, and runtime licenses. `base: "./"` and hash navigation support gateway subpaths without a backend. Fonts are system monospace; no font or chart library download is needed at runtime.
+Open the printed preview URL. Submit the complete **dist/** directory together with source and the existing manifest/lockfile. Vite's unchanged `base: "./"` produces relative assets; hash navigation works under static gateway subpaths. Required icons, social image and runtime licenses are bundled locally. No backend, credentials, remote font or chart library is needed.
 
-This restricted workspace was built in `/tmp/free1376-paid-ransom`, leaving repository dependency/configuration paths untouched. To reproduce that method, copy `package.json`, `package-lock.json`, `tsconfig.json`, `vite.config.ts`, `index.html`, `src/`, `scripts/`, and `public/` to a fresh `/tmp` directory. There, run `npm ci --cache /tmp/free1376-paid-npm-cache --ignore-scripts --no-audit --no-fund`, then the commands above. Copy its complete `dist/` back and remove obsolete hashed chunks. Dependencies, browser binaries, and caches remain outside the submission. The unchanged ignore file has its existing explicit 512-byte budget.
+The worker used an isolated copy at `/tmp/free1376-record` because dependency paths in this repository were protected. To reproduce that method, copy `package.json`, `package-lock.json`, `tsconfig.json`, `vite.config.ts`, `index.html`, `src/`, `scripts/` and `public/` to a fresh temporary directory, run `npm ci --ignore-scripts --no-audit --no-fund` and the commands above there, then replace the repository's `dist/` with that complete export. Do not copy dependencies or caches back. The existing ignore file and its 512-byte budget are unchanged.
 
-## Implemented behavior
+## Behavior
 
-- `SecondActView` switches only when the unchanged watch contains `BURNED. ALL OF IT.`: all nine balances are zero and burned tokens reach H0. Every other state renders the original `SecondAct` component. The original letter, watch, verdicts, and both existing stylesheets are byte-identical.
-- The paid view shows the exact headline and receipt, closed native disclosures for the live wallets and original letter/creator hint, three offer rows, sell meter, SVG history, the static recouped line, and the unchanged watch. The paid receipt is the timestamp of the first zero-total block found by binary search from **26,139,700** through the visit's latest block.
-- New past-block calls use **https://eth.drpc.org exclusively**. The existing publicnode/dRPC fallback supplies the current block. `src/paidReads.ts` encodes the same V4 sell quote as the first act: the existing pool key, `zeroForOne: false`, exact token input, and empty hook data. One Multicall3 `aggregate3` at **0xcA11bde05977b3631167028862bE2a173976CA11** reads each historical quote, `getSlot0`, Chainlink `latestRoundData`, and that block's `totalSupply`. The extra supply entry keeps market cap correct after supply burns without another historical call.
-- Live sell reads run every **15 seconds**, capped at `min(balance, M0)`, with balance, quote, supply, pool price, and feed pinned to one block. Four-decimal ETH and one-decimal percentages are display formatting; permission uses the exact **8,670,000,000,000,000,000 wei** boundary. A zero bag has zero proceeds without making an invalid zero-amount swap. Market cap uses the first act's pool-price × supply × ETH/USD formula.
-- History is read once per visit, with hourly targets below 48 hours and 48 evenly spaced targets afterwards. The live point occupies the last slot; there are at most 47 historical points plus live. In the last fractional hour before 48 hours, live replaces the final hourly slot to respect the 48-point cap. Timestamp lookup resolves each target to its own actual block. Failed points are skipped. Chainlink freshness is checked against each historical block's time.
-- Any successful chart sample or live quote reaching 100% is remembered for that visit, across tab changes and later price drops. Offer rules 1 and 2 fail strictly above M0. Rule 3 fails below M0 only without observed permission; while the history search is unresolved, its uncertain status is `—`. The original watch's independent spot-price verdicts remain exactly as requested and can differ from the offer's remembered quote-based rule.
-- Live failure retains the last reading and displays the existing retry line; polling recovers automatically. History failure leaves the unknown time as `—` and uses existing error copy; reloading starts a new visit. Permission is based on the requested samples, not an exhaustive reconstruction of every intervening block. The required binary search assumes an ordered transition to zero.
-- The third-act tab always retains `sealed`; the exact gate sentence appears above the preserved key, rows, and links. Recouped remains zero. All new logic/components/styles are in new files; App and KeyAct only add wiring.
+- `burnHistory.ts` binary-searches the first block from **26,139,700** where `(10^27 - totalSupply) + balanceOf(dEaD) >= H0`, then verifies that all nine balances sum to zero at that block. The paid block is published immediately, before chart sampling completes. The view uses either that block or the watch's full-burn verdict, so subsequent deposits cannot undo verified payment. Disclosures continue to show live balances.
+- `walletRecord.ts` reads the wallet history once per visit and `recordVisit.ts` extends it when the watch sees his balance change. Different endpoint balances cause recursive range splitting down to adjacent blocks. Equal endpoints can conceal a sale and a later buy: transfer-log candidates are also checked against adjacent balances. If range logs fail, a complete adjacent-balance scan is used instead. Work is bounded to six simultaneous balance reads, batched in groups of three to respect the observed dRPC free-plan limit. The initial block is included by comparing with block 26,139,699.
+- All past-state reads, receipt requests (`eth_getBlockReceipts`), ETH balances and quotes use **https://eth.drpc.org only**. The existing live watch and trading RPCs, CSP, configuration and dependencies are unchanged.
+- A decrease's proceeds equal the wallet's ETH gain over that block plus the gas cost of **all transactions he sent** in it. Positive proceeds make a sale; zero/negative proceeds make a move. An increase is a buy only when a receipt from his own transaction contains a positive FREE1376 transfer to him. Otherwise it is a gift.
+- The first decrease alone is judged by the real sell quote for `min(previous balance, M0)` at the previous block. Exactly **8.67 ETH** permits it and all later decreases. Both watch accusations and all three offer rows use this record; gifts and sampled chart peaks cannot decide them. Pending/failed records have unknown rows and no accusations.
+- The MAY HE SELL status uses the live quote or an allowed first decrease. RECOUPED sums positive proceeds, displays four decimals and one linked contract row per sale block, and shows the sealed fulfillment headline only at an exact total of at least 8.67 ETH with all three rules passing. The third-act gate uses the requested new sentences and second-act link. His paid-layout watch row shows only token balance.
+- The first act, letter text, chart component, all stylesheets, `chain.ts`, `wallet.ts`, transaction handlers, configuration, dependencies, public assets and CSP are preserved. The integrity script checks 29 preserved files and verifies that App/KeyAct changes are only record/gate wiring. No new CSS, palette, typography or product copy beyond the requested lines was added.
 
-`chain.ts`, `wallet.ts`, transaction handlers, existing configuration/dependencies, CSP, first-act markup/copy, and existing letter/watch code are preserved. See [DESIGN.md](DESIGN.md) for the implemented design.
+The record's unit is a **block-level balance change**, as requested: net-zero activity entirely inside one block is outside this definition. If several outgoing transactions occur in one sale block, the block's aggregate amount/proceeds link to the first matching outgoing transaction he sent (or the first matching outgoing transfer if none was sent by him). No transaction-level proceeds split is inferred. The visit extends when the polling watch observes a different balance; offsetting activity between polls is included on the next extension or reload. It uses latest-block reads, without an additional finality/reorg policy. Archive availability and latency remain external; the exhaustive fallback is slower than log-assisted discovery. Failures retain data, display existing retry text and retry on watch updates.
 
-## Validation performed — 7 October 2026
+## Validation — 7 October 2026
 
-Commands run in the isolated build directory (typecheck, unit tests, build, browser checks and the final mainnet buy/sell repeat ran after the last source change):
+Commands actually run after the final source change, with dependencies isolated outside the repository:
 
 ```sh
 npm run typecheck
 npm test
 npm run build
-PLAYWRIGHT_BROWSERS_PATH=/tmp/free1376-paid-browsers npx --no-install playwright-core install chromium
-CHECK_LIVE_BROWSER=1 PLAYWRIGHT_BROWSERS_PATH=/tmp/free1376-paid-browsers npx --no-install tsx scripts/check-paid-browser.mjs
+PLAYWRIGHT_BROWSERS_PATH=/tmp/free1376-record-browsers npx --no-install playwright-core install chromium
+PLAYWRIGHT_BROWSERS_PATH=/tmp/free1376-record-browsers npx --no-install tsx scripts/check-record-browser.mjs
 npx --no-install tsx scripts/check-mainnet.ts
-npx --no-install tsx scripts/check-paid-mainnet.ts
-```
-
-Read-only preservation and packaging checks, from this repository:
-
-```sh
-python3 scripts/check-paid-preservation.py
+npx --no-install tsx scripts/check-record-mainnet.ts
+python3 scripts/check-record-preservation.py
 python3 scripts/check-package.py
 ```
 
-- Typecheck and production build passed; **69/69 unit tests passed**. New tests cover exact paid switching and unchanged unpaid markup, search boundaries, actual-block timestamp lookup, hourly/48-point sampling, skipped failures, aggregate calldata/results, capped live quotes, exact sell threshold, offer rules, remembered permission, polling/retention, and the third-act gate. Existing trade/calldata, approvals, testament, key, letter, and watch tests still pass.
-- **47/47 browser assertions passed** in Chromium **153.0.8010.12**, serving the production export under `/preview/`. The foreground runner starts and closes its own server/browser. ABI-level RPC mocks exercise automatic paid switching, 11% and 100%, disclosures, Etherscan links, chart hover/keyboard/touch, bought-again/sold-early rules, historical permission, tab persistence, failure recovery, third-act sealing despite a given key, first-act buy/sell inputs, wallet chooser/Escape, and the legacy testament hash. The final check also used real mainnet reads: full wallets, zero burned, `WAITING.`, and the original second act.
-- Rendered reflow passed at **320, 360, 640, 641, 768, and 1440px**. Screenshots of paid 11%/100%, mobile, chart focus, forced colors, offer failure, gate, and live unpaid views were inspected. No page errors, console errors, or failed local resources occurred in the mocked run; no uncaught error occurred in the live second-act check. The only axe findings were the inherited cross-act `.skip-link` warnings (`region`, `skip-link`).
-- The mainnet buy check passed: **0.001 ETH → 14,440.052312921616982725 FREE1376** at block **26,141,090**, and the page's own buy calldata returned **`0x` successfully** in `eth_call`; manifesto integrity passed. No transaction was signed or broadcast.
-- Final repeat at **14:40:09 UTC**, live quote block **26,141,163**: the nine wallets held **189,216,124.32 FREE1376**, his wallet **12,160,406.58**, burned **0**, paid layout **false**, verdict **WAITING.** The real sell quote was **1.002568013542564835 ETH (11.5636%)**, equal to a direct call of the same quoter at that block. The repeated **0.001 ETH** buy quoted **11,134.764690538776500471 FREE1376** and its page-calldata simulation again returned **`0x`**. An actual historical aggregate at **26,139,700** returned **0.956335162299578403 ETH**. Quotes moved during validation (an earlier 14:27 read was 0.7767 ETH); the site uses the current real quote rather than fixing it to the assignment's approximate 0.97 ETH. Raw final values/calldata are in `artifacts/paid-mainnet.json`.
-- The complete static export is **685,918 bytes**. The conservative submission inventory, including review artifacts and archive overhead, is **under 2.3 MB**, below **8,388,608 bytes**. `artifacts/package-report.json` records exact byte counts and hashes. The export contains only the current runtime chunks/assets; no registry, dependency archives, generated cache, node_modules, or submodule is delivered. Vite's advisory about the approximately 501 kB minified main chunk remains; configuration is intentionally unchanged.
+Chromium installation was performed once before browser validation. Browser and mainnet scripts use read-only requests; no transaction was signed or broadcast. The production-browser script serves the finished export at `/preview/` and closes its own server/browser. The tool browser separately inspected the live production preview.
 
-## Better Interface review
+- Typecheck and production build pass; **86/86 unit tests pass**. Coverage includes paid-search endpoints and threshold, post-burn deposits, all changed blocks including equal-endpoint cancellations, RPC-log fallback, exact previous-block quotes, subsequent sales, gifts, own buys, wrong-token/self-direction exclusions, moves, gas correction, fulfillment boundary, pending/failure states, visit persistence/retry, exact new copy, and existing trade/testament/chart tests.
+- **49/49 production-browser assertions pass** in Chromium **153.0.8010.12**. Covered paid discovery after a top-up on a new visit; automatic switching; live folded balances; exact copy; record-driven gifts/buys/early/allowed sales; gas-adjusted 8.6700 ETH fulfillment; second-act linking; chart keyboard/touch; wallet chooser/Escape; buy/sell quote inputs; legacy hash routes; failed quote retention/recovery. No uncaught errors, console errors or missing local resources in the mocked run.
+- Reflow passed at **320, 360, 640, 641, 768 and 1440px**. Desktop/mobile fulfilled screenshots and forced-colors focus were inspected. Live unpaid views were inspected at 1280 and 360px. Measured rendered contrast: orange/black **7.36:1**, muted/black **8.40:1**, body/black **18.33:1**. Axe reports only inherited `.skip-link` `region`/`skip-link` findings, outside the protected first-act scope.
+- Live range-log queries returned HTTP 400; the balance-scan fallback completed successfully and found an empty record. Each live document load logged two handled network errors; no uncaught exception was observed. dRPC batches above three requests were rejected during development, so final code uses batches of three. The final mainnet repeat is recorded below and in `artifacts/record-mainnet.json` / `artifacts/mainnet-check.json`.
+- **Final mainnet repeat:** at **15:54:35 UTC**, watch/record block **26,141,531**, the nine wallets held **0.00 FREE1376**, his wallet **12,160,406.58**, and burned **189,216,124.32**. The paid block is **26,141,482**, **7 October 2026, 15:43:59 UTC**. The record is empty; all rows pass; recouped is **0.0000 ETH**. The real capped sell quote was **1.381014157663534015 ETH**. The preceding buy check at block **26,141,530** quoted **0.001 ETH → 8,028.805469947870275562 FREE1376**; the page's exact buy calldata returned **`0x`** successfully in `eth_call`, and manifesto integrity passed. Earlier in this run, full wallets correctly showed the unchanged unpaid layout; the live browser subsequently switched to the paid layout with the verified time and zero recouped.
+- Export size: **691,965 bytes**. The final conservative bundle inventory is recorded in `artifacts/package-report.json`, below the **8,388,608-byte** budget. Only current runtime chunks ship. No dependency directory, cache, package archive, registry mirror or submodule is delivered. Vite retains its existing advisory for the approximately 507 kB main chunk; protected build configuration was not changed.
 
-Applied the pinned workflow and all six domains while building. The complete review is `artifacts/validation.md`; evidence may be collected separately because the workspace's existing Git exclusion covers `artifacts/`. This README retains the essential results.
-
-| Domain | Coverage and result |
-| --- | --- |
-| Accessibility | Checked native disclosures/links, meter name/value, keyboard chart controls, live status regions, touch selection, visible cyan focus, forced colors, reduced motion, and axe. Screen reader, physical device, native browser zoom, and other engines unperformed. |
-| Layout | Checked requested order, reused measure/rail/contract rows, closed disclosures, wrap behavior, and 320–1440px reflow. Screenshot inspection found no clipped paid content at tested sizes. |
-| Writing | Checked requested strings and independent exact-letter fixture; kept all previous copy and reused existing error text. No fabricated date, quote, or permission while loading. |
-| Typography | Checked system monospace, existing sealed-headline/label sizes, tabular values, fixed precision, selectable wrapped addresses, and legible unscaled SVG labels. |
-| Colors | Checked existing tokens only. Measured rendered foreground/background: orange/black **7.36:1**, muted/black **8.40:1**, body/black **18.33:1**. No full gradient or accessibility certification is claimed. |
-| UI | Checked 11%/100%, unknown/failed/recovered states, offer violations, disclosures, dashed chart threshold and selected point. Native disclosure arrows communicate folded content; no new animation. |
-
-Findings and fixes: **medium**, `src/SellChart.tsx:82`: touch pointer-leave could reset the selected sample; limited reset to mouse pointers and verified a real emulated touchscreen tap retains its detail. **medium prevented**, `src/paid.ts:47` / `src/paidVisit.ts:36`: an unresolved historical query must not accuse an early sale; show `—` until history resolves, and retain any observed permission. **medium inherited**, `src/App.tsx:502`: the unchanged skip link targets first-act trading while another act is displayed; axe records it, while the existing hash route remains available. First-act structure was explicitly protected. A browser-harness selector initially used `button` for the existing Sell `tab`; corrected the harness and reran all checks.
-
-Limitations: native browser zoom/text enlargement, physical wallets/devices, screen readers, Firefox/Safari, exhaustive historical price peaks, and a hosted post-publication check were not performed. Public RPC availability is external. Reports are worker observations, not independent certification.
+See [DESIGN.md](DESIGN.md) for implemented tokens/components and [the consolidated review](artifacts/validation.md) for all six Better Interface domains, findings, fixes and limitations. Browser screenshots and compact reports are evidence of worker checks, not independent certification. Screen readers, native zoom/text enlargement, physical wallets/devices, Firefox/Safari and a post-publication hosted check were not performed.
 
 ## Publish under free1376
 
-1. Repeat `npx --no-install tsx scripts/check-mainnet.ts` and `npx --no-install tsx scripts/check-paid-mainnet.ts` immediately before publishing; report actual values if the market or holdings change.
-2. Submit the source, unchanged manifest/lockfile, README/DESIGN and **all of `dist/`** to the IdentityMD publisher as the next version of **free1376.site.identitymd.eth**, name **free1376**. It serves the supplied export without rebuilding. Preserve the existing `https://free1376.eth.limo/og.png` social-image alias.
-3. Check the published `#first-act`, `#second-act`, and `#third-act` links, current watch/quotes, and the third-act gate.
+1. Repeat `npx --no-install tsx scripts/check-mainnet.ts` and `npx --no-install tsx scripts/check-record-mainnet.ts`; report the actual current holdings and state.
+2. Submit source, the unchanged package manifest/lockfile, documentation, and **all of dist/** as the next version of **free1376.site.identitymd.eth**, name **free1376**. The IdentityMD publisher serves the committed export without rebuilding. Preserve the existing social-image alias and all relative runtime assets.
+3. Verify the published first-, second- and third-act hash links, watch, record, quote and wallet chooser.
 
-**Publication remains pending:** this environment exposes no publisher or hosting credentials, and the assignment forbids modifying `.git/`. The source and finished export are ready for the submission system to commit and publish under the same name; no hosted deployment or Git commit is claimed.
+**Publication remains pending:** no publisher tool or hosting credentials are available in this environment, and this assignment prohibits modifying `.git/`. The complete source/export is prepared for the submission system to commit and publish under the same name. No Git commit, hosted deployment or onchain transaction is claimed.

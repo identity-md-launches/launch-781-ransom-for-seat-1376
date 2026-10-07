@@ -8,7 +8,15 @@ import {
   type WatchState,
 } from "./watch";
 
-export function Watch({ data, failed }: WatchState) {
+import type { RecordState } from "./walletRecord";
+import { recordVerdicts } from "./recordVerdicts";
+
+export function Watch({
+  data,
+  failed,
+  record,
+  paid = false,
+}: WatchState & { record?: RecordState; paid?: boolean }) {
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
   useEffect(() => {
     const timer = setInterval(
@@ -29,8 +37,14 @@ export function Watch({ data, failed }: WatchState) {
         <div className="contract-row watch-row">
           <dt className="label">his wallet:</dt>
           <dd>
-            {data ? watchTokens(data.main) : "—"} FREE1376 ·{" "}
-            {data ? watchValue(data) : "≈ — ETH ($—)"} · cash-out line 8.67 ETH
+            {data ? watchTokens(data.main) : "—"} FREE1376
+            {!paid && (
+              <>
+                {" "}
+                · {data ? watchValue(data) : "≈ — ETH ($—)"} · cash-out line
+                8.67 ETH
+              </>
+            )}
           </dd>
         </div>
         <div className="contract-row watch-row">
@@ -47,10 +61,14 @@ export function Watch({ data, failed }: WatchState) {
       </dl>
       <div className="watch-verdict" role="status">
         {data &&
-          watchVerdicts(data, now).map((line) => <p key={line}>{line}</p>)}
+          recordVerdicts(watchVerdicts(data, now), record).map((line) => (
+            <p key={line}>{line}</p>
+          ))}
       </div>
       <p className="label" role="status">
-        {failed ? "Live reads are unavailable. Retrying…" : ""}
+        {failed || record?.failed
+          ? "Live reads are unavailable. Retrying…"
+          : ""}
       </p>
     </section>
   );

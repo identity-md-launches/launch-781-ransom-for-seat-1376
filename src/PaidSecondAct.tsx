@@ -1,5 +1,7 @@
 import { Letter, SecondAct } from "./SecondAct";
 import { Watch } from "./Watch";
+import { Recouped } from "./Recouped";
+import { initialRecordState, type RecordState } from "./walletRecord";
 import { SellChart } from "./SellChart";
 import { fixedAmount } from "./display";
 import { DEAD, NINE_WALLETS, watchTokens, type WatchState } from "./watch";
@@ -37,9 +39,11 @@ function AddressLink({
 export function SellMeter({
   live,
   failed,
+  allowed = false,
 }: {
   live?: SellReading;
   failed: boolean;
+  allowed?: boolean;
 }) {
   const percentage = live && sellPercentage(live.out);
   const bag = `his bag sells for ${live ? fixedAmount(live.out, 18, 4, "nearest") : "—"} ETH of 8.67 ETH`;
@@ -70,8 +74,8 @@ export function SellMeter({
         measured by the real sell quote: the 2% fee and slippage included.
       </p>
       <p className="sell-status" role="status">
-        {live
-          ? maySell(live.out)
+        {allowed || live
+          ? allowed || maySell(live!.out)
             ? "HE MAY SELL."
             : "HE MAY NOT SELL YET."
           : "—"}
@@ -86,21 +90,22 @@ export function SellMeter({
 export function PaidSecondAct({
   watch,
   paid,
+  record = initialRecordState,
 }: {
   watch: WatchState;
   paid: PaidState;
+  record?: RecordState;
 }) {
-  const data = watch.data!;
+  const data = watch.data;
   const history = paid.history;
-  const rules = offerRules(
-    data.main,
-    paid.allowed,
-    !!history?.paid && !paid.historyPending,
-  );
+  const rules = offerRules(record);
   return (
     <section id="second-act" className="document-section paid-act">
       <div className="testament-body">
         <h1 className="sealed-headline">THE SECOND RANSOM IS PAID.</h1>
+        <p>
+          The person who owned me burned every token in his nine hidden wallets.
+        </p>
         <p className="label paid-receipt" aria-busy={paid.historyPending}>
           189,216,124 $FREE1376 → <AddressLink address={DEAD} text="0x…dEaD" />{" "}
           · {history?.paid ? paidTime(history.paid.timestamp) : "—"}
@@ -113,7 +118,7 @@ export function PaidSecondAct({
                 <AddressLink address={address} />
                 <span className="letter-balance">
                   {" "}
-                  · {watchTokens(data.balances[index])} FREE1376
+                  · {data ? watchTokens(data.balances[index]) : "—"} FREE1376
                 </span>
               </p>
             ))}
@@ -121,7 +126,7 @@ export function PaidSecondAct({
         </details>
         <details className="paid-disclosure">
           <summary>read the letter</summary>
-          <Letter balances={data.balances} />
+          <Letter balances={data?.balances} />
           <div className="label">
             my creator leaves hints here:{" "}
             <a
@@ -145,7 +150,11 @@ export function PaidSecondAct({
             ))}
           </div>
         </section>
-        <SellMeter live={paid.live} failed={paid.liveFailed} />
+        <SellMeter
+          live={paid.live}
+          failed={paid.liveFailed}
+          allowed={record.data?.firstDecreaseAllowed === true}
+        />
         <section className="paid-section" aria-labelledby="sell-chart-title">
           <h2 className="label" id="sell-chart-title">
             CHART
@@ -161,15 +170,8 @@ export function PaidSecondAct({
             </p>
           )}
         </section>
-        <section className="paid-section" aria-labelledby="recouped-title">
-          <h2 className="label" id="recouped-title">
-            RECOUPED
-          </h2>
-          <p>
-            recouped by selling: 0 of 8.67 ETH. The third act opens at 8.67.
-          </p>
-        </section>
-        <Watch {...watch} />
+        <Recouped record={record} />
+        <Watch {...watch} record={record} paid />
       </div>
     </section>
   );
@@ -177,11 +179,12 @@ export function PaidSecondAct({
 
 export function SecondActView({
   paid = initialPaidState,
+  record = initialRecordState,
   ...watch
-}: WatchState & { paid?: PaidState }) {
-  return secondRansomPaid(watch.data) ? (
-    <PaidSecondAct watch={watch} paid={paid} />
+}: WatchState & { paid?: PaidState; record?: RecordState }) {
+  return secondRansomPaid(watch.data, paid.history?.paid) ? (
+    <PaidSecondAct watch={watch} paid={paid} record={record} />
   ) : (
-    <SecondAct {...watch} />
+    <SecondAct {...watch} record={record} />
   );
 }

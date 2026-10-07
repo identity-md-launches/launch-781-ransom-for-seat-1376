@@ -24,11 +24,13 @@ export function KeyAct({
   burial,
   yours = false,
   failed = false,
+  fulfilled = false,
 }: {
   data?: KeyData;
   burial?: Burial;
   yours?: boolean;
   failed?: boolean;
+  fulfilled?: boolean;
 }) {
   const liberator = liberatorAddress(burial, data);
   return (
@@ -38,7 +40,7 @@ export function KeyAct({
       aria-label="Third act"
       aria-busy={!data && !failed}
     >
-      <ThirdActGate />
+      <ThirdActGate fulfilled={fulfilled} />
       {failed && (
         <p className="label" role="status">
           Live reads are unavailable. Retrying…

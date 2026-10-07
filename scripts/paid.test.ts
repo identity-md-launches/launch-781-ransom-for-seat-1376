@@ -30,7 +30,6 @@ import {
   chartTimes,
   initialPaidState,
   maySell,
-  offerRules,
   paidTime,
   secondRansomPaid,
   type PaidBlock,
@@ -98,7 +97,7 @@ test("only BURNED. ALL OF IT. switches the view; all unpaid markup is preserved"
   }
 });
 
-test("paid layout has the exact receipt, folded disclosures, offer, meter, chart, recouped and unchanged watch", () => {
+test("paid layout has the receipt, disclosures, offer, meter, unchanged chart and pending record", () => {
   const markup = html(burned, {
     ...initialPaidState,
     historyPending: false,
@@ -114,7 +113,7 @@ test("paid layout has the exact receipt, folded disclosures, offer, meter, chart
     "MAY HE SELL",
     "CHART",
     "RECOUPED",
-    "recouped by selling: 0 of 8.67 ETH. The third act opens at 8.67.",
+    "recouped by selling: — of 8.67 ETH. The third act opens at 8.67.",
     "watch-countdown",
     "BURNED. ALL OF IT.",
   ];
@@ -135,23 +134,6 @@ test("paid layout has the exact receipt, folded disclosures, offer, meter, chart
     assert.ok(
       markup.includes(`href="https://etherscan.io/address/${address}"`),
     );
-});
-
-test("offer uses strict M0 boundaries and remembered permission for early selling", () => {
-  assert.deepEqual(offerRules(M0, false), [
-    "1. keeps only the 12.16M · ✓",
-    "2. never buys again · ✓",
-    "3. sells nothing before he may · ✓",
-  ]);
-  assert.equal(
-    offerRules(M0 + 1n, true).filter((row) =>
-      row.endsWith("✗ HE BOUGHT AGAIN."),
-    ).length,
-    2,
-  );
-  assert.ok(offerRules(M0 - 1n, false)[2].endsWith("✗ HE SOLD EARLY."));
-  assert.ok(offerRules(M0 - 1n, true)[2].endsWith("✓"));
-  assert.ok(offerRules(M0 - 1n, false, false)[2].endsWith("—"));
 });
 
 test("meter rounds only for display; the status switches at exactly 8.67 ETH", () => {
@@ -196,9 +178,10 @@ test("paid-block search includes the starting and latest blocks and uses logarit
     const result = await findPaidBlock(
       { number: PAID_START + 8192n, timestamp: startTime },
       {
-        total: async (number) => {
+        total: async () => 0n,
+        burned: async (number) => {
           calls.push(number);
-          return number >= first ? 0n : H0;
+          return number >= first ? H0 : H0 - 1n;
         },
         block: async (number) => ({
           number,
@@ -219,6 +202,7 @@ test("paid-block search includes the starting and latest blocks and uses logarit
       { number: PAID_START, timestamp: startTime },
       {
         total: async () => H0,
+        burned: async () => 0n,
         block: async () => {
           throw Error("should not read");
         },
@@ -230,7 +214,8 @@ test("paid-block search includes the starting and latest blocks and uses logarit
     findPaidBlock(
       { number: PAID_START, timestamp: startTime },
       {
-        total: async () => {
+        total: async () => 0n,
+        burned: async () => {
           throw Error("archive down");
         },
         block: async () => {
@@ -276,6 +261,7 @@ function historySource(hours = 4): HistorySource {
     latest: () => block(first + BigInt(hours * 300 + 7)),
     block,
     total: async (number) => (number < first ? H0 : 0n),
+    burned: async (number) => (number < first ? 0n : H0),
     point: async (at) => ({
       block: at.number,
       timestamp: at.timestamp,
@@ -481,7 +467,7 @@ test("paid-block totals aggregate exactly the nine balances and reject a failed 
   }
 });
 
-test("visit reads history once, polls live every 15 seconds, remembers permission and retains failures across navigation", async (t) => {
+test("visit reads history once, polls live every 15 seconds, retains failures across navigation", async (t) => {
   t.mock.timers.enable({ apis: ["setInterval"] });
   let histories = 0,
     reads = 0,
@@ -503,7 +489,6 @@ test("visit reads history once, polls live every 15 seconds, remembers permissio
   await setImmediate();
   assert.equal(histories, 1);
   assert.equal(reads, 1);
-  assert.equal(states.at(-1)!.allowed, true);
   out = CASH_OUT / 10n;
   t.mock.timers.tick(WATCH_INTERVAL - 1);
   assert.equal(reads, 1);
@@ -511,7 +496,6 @@ test("visit reads history once, polls live every 15 seconds, remembers permissio
   await setImmediate();
   assert.equal(reads, 2);
   assert.equal(states.at(-1)!.live!.out, out);
-  assert.equal(states.at(-1)!.allowed, true);
   fail = true;
   t.mock.timers.tick(WATCH_INTERVAL);
   await setImmediate();
@@ -525,12 +509,11 @@ test("visit reads history once, polls live every 15 seconds, remembers permissio
   stop = visit((state) => states.push(state));
   await setImmediate();
   assert.equal(histories, 1);
-  assert.equal(states.at(-1)!.allowed, true);
   assert.equal(states.at(-1)!.liveFailed, false);
   stop();
 });
 
-test("any historical 100% point permanently grants permission even when live is below it", async () => {
+test("chart history never grants permission when the live quote falls", async () => {
   const states: PaidState[] = [];
   const visit = createPaidVisit(
     async () => ({
@@ -541,7 +524,12 @@ test("any historical 100% point permanently grants permission even when live is 
   );
   const stop = visit((state) => states.push(state));
   await setImmediate();
-  assert.equal(states.at(-1)!.allowed, true);
+  assert.match(
+    renderToStaticMarkup(
+      createElement(SellMeter, { live: states.at(-1)!.live, failed: false }),
+    ),
+    /HE MAY NOT SELL YET/,
+  );
   stop();
 });
 
@@ -550,6 +538,21 @@ test("third act remains sealed and the gate is present even before key reads", (
   const markup = renderToStaticMarkup(createElement(KeyAct, {}));
   assert.match(
     markup,
-    /The third act begins when he sells his bag and gets 8.67 ETH back\./,
+    /The third act opens when the person who owned me sells the bag he kept and gets 8.67 ETH back\. Everything is in <a href="#second-act">the second act<\/a>\./,
+  );
+});
+
+test("chart retains the paid origin when first read in the exact paid block", async () => {
+  const source = historySource();
+  source.latest = () => source.block(PAID_START + 100n);
+  const history = await readPaidHistory(source);
+  assert.equal(history.points.length, 1);
+  assert.equal(history.points[0].block, history.paid!.number);
+  assert.equal(
+    chartPoints(history.points, {
+      ...reading(),
+      block: history.paid!.number + 1n,
+    })[0].block,
+    history.paid!.number,
   );
 });

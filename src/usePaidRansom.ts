@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { initialPaidState, secondRansomPaid } from "./paid";
+import { initialPaidState } from "./paid";
 import { createPaidVisit } from "./paidVisit";
-import type { WatchState } from "./watch";
+import { H0, watchTotals, type WatchState } from "./watch";
 
 export function usePaidRansom(watch: WatchState) {
-  const paid = secondRansomPaid(watch.data);
+  const paid = !!watch.data && watchTotals(watch.data).burned >= H0;
   const [visit] = useState(() => createPaidVisit());
   const [state, setState] = useState(initialPaidState);
   useEffect(() => {
