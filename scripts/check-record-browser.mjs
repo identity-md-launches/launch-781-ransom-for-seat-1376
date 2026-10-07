@@ -288,26 +288,11 @@ await context.route(
           transactions: [],
         });
       }
-      if (req.method === "eth_getLogs") {
-        assert.equal(new URL(route.request().url()).host, "eth.drpc.org");
-        const filter = req.params[0];
-        return respond(
-          events
-            .filter(
-              (event) =>
-                event.block >= BigInt(filter.fromBlock) &&
-                event.block <= BigInt(filter.toBlock),
-            )
-            .map(transferLog)
-            .filter((log) =>
-              filter.topics.every(
-                (topic, index) =>
-                  !topic ||
-                  topic.toLowerCase() === log.topics[index].toLowerCase(),
-              ),
-            ),
-        );
-      }
+      assert.notEqual(
+        req.method,
+        "eth_getLogs",
+        "Pure bisection must never query logs",
+      );
       if (req.method === "eth_getBlockReceipts") {
         const block = BigInt(req.params[0]);
         const event = events.find((event) => event.block === block);

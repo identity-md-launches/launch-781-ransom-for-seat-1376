@@ -8,11 +8,7 @@ import {
   type Hex,
 } from "viem";
 import { HIS_WALLET } from "./watch";
-import {
-  transferEvent,
-  type RecordSource,
-  type RecordReceipt,
-} from "./walletRecord";
+import { type RecordSource, type RecordReceipt } from "./walletRecord";
 
 // Every historical operation, including receipts and ETH balances, uses dRPC.
 const balances = createPublicClient({
@@ -63,31 +59,5 @@ export const recordSource: RecordSource = {
       functionName: "quoteExactInputSingle",
       data: result.data,
     })[0];
-  },
-  transferBlocks: async (start, end) => {
-    const blocks = new Set<bigint>();
-    // Public RPC range limits vary; bounded chunks also cap each response.
-    for (let fromBlock = start; fromBlock <= end; fromBlock += 1000n) {
-      const toBlock = fromBlock + 999n < end ? fromBlock + 999n : end;
-      const logs = await Promise.all([
-        archive.getLogs({
-          address: ADDR.token,
-          event: transferEvent,
-          args: { from: HIS_WALLET },
-          fromBlock,
-          toBlock,
-        }),
-        archive.getLogs({
-          address: ADDR.token,
-          event: transferEvent,
-          args: { to: HIS_WALLET },
-          fromBlock,
-          toBlock,
-        }),
-      ]);
-      for (const log of logs.flat())
-        if (log.blockNumber !== null) blocks.add(log.blockNumber);
-    }
-    return [...blocks];
   },
 };

@@ -137,8 +137,6 @@ function mock(
       quotes.push([n, amount]);
       return quote;
     },
-    transferBlocks: async (a, b) =>
-      events.filter((e) => e.at >= a && e.at <= b).map((e) => e.at),
   };
   return {
     source,
@@ -191,51 +189,134 @@ test("paid search follows burned threshold despite top-ups and validates the nin
   );
 });
 
-test("range splitting finds every changed block, including cancellation inside equal endpoints", async () => {
-  const changes = new Map([
-    [2n, 90n],
-    [3n, 110n],
-    [7n, 100n],
-    [10n, 80n],
-    [14n, 100n],
-  ]);
-  const balance = async (n: bigint) =>
-    [...changes].filter(([at]) => at <= n).at(-1)?.[1] ?? 100n;
-  const result = await findBalanceChanges(0n, 20n, balance, async (a, b) =>
-    [...changes.keys()].filter((n) => n >= a && n <= b),
-  );
+test("equal endpoints finish a million-block range without any interior reads", async () => {
+  const queried: bigint[] = [];
   assert.deepEqual(
-    result.map((e) => e.block),
-    [...changes.keys()],
+    await findBalanceChanges(0n, 1_000_000n, async (n) => {
+      queried.push(n);
+      assert.ok(n === 0n || n === 1_000_000n, "No interior read is allowed");
+      return 100n;
+    }),
+    [],
   );
-  for (const item of result) {
-    assert.equal(item.before, await balance(item.block - 1n));
-    assert.equal(item.after, await balance(item.block));
+  assert.deepEqual(queried, [0n, 1_000_000n]);
+});
+
+test("an unchanged visit makes exactly two balance reads and never asks for logs or receipts", async () => {
+  const m = mock([]);
+  const queried: bigint[] = [];
+  m.source.balance = async (n) => {
+    queried.push(n);
+    return M0;
+  };
+  // Tripwires for either former range-log API, even if added back dynamically.
+  const source = {
+    ...m.source,
+    getLogs: async () => assert.fail("No log queries"),
+  };
+  Object.defineProperty(source, "transferBlocks", {
+    get: () => assert.fail("No transfer-block queries"),
+  });
+  const record = await extendWalletRecord(source);
+  assert.deepEqual(record.changes, []);
+  assert.deepEqual(queried, [start + 20n, start - 1n]);
+  assert.deepEqual(m.queried, []);
+  assert.ok(recordOfferRules(ready(record)).every((row) => row.endsWith("✓")));
+});
+
+test("one change over a million blocks needs at most two reads per halving", async () => {
+  for (const at of [1n, 500_000n, 731_927n, 1_000_000n]) {
+    const reads: bigint[] = [];
+    assert.deepEqual(
+      await findBalanceChanges(0n, 1_000_000n, async (n) => {
+        reads.push(n);
+        return n < at ? 100n : 70n;
+      }),
+      [{ block: at, before: 100n, after: 70n }],
+    );
+    assert.ok(
+      reads.length <= 2 + 2 * Math.ceil(Math.log2(1_000_000)),
+      `${reads.length} reads`,
+    );
+    assert.equal(
+      new Set(reads).size,
+      reads.length,
+      "Cached endpoints are read once",
+    );
   }
 });
 
-test("range splitting agrees with exhaustive block comparison for irregular up/down balances", async () => {
-  let seed = 79;
-  const values = [1000n];
-  for (let i = 1; i < 129; i++) {
-    seed = (seed * 48271) % 2147483647;
-    values.push(
-      values[i - 1] + (seed % 4 === 0 ? BigInt((seed % 19) - 9) : 0n),
+test("two changes in one range are found in order with adjacent-block balances", async () => {
+  assert.deepEqual(
+    await findBalanceChanges(0n, 1_000_000n, async (n) =>
+      n < 71n ? 100n : n < 812_345n ? 70n : 60n,
+    ),
+    [
+      { block: 71n, before: 100n, after: 70n },
+      { block: 812_345n, before: 70n, after: 60n },
+    ],
+  );
+});
+
+test("sale then buy at different amounts preserve classification, proceeds and first-decrease quote", async () => {
+  const m = mock([
+    { at: start + 2n, delta: -3n * token, proceeds: CASH_OUT },
+    { at: start + 9n, delta: token, proceeds: -parseEther("1") },
+  ]);
+  const record = await extendWalletRecord(m.source);
+  assert.deepEqual(
+    record.changes.map((c) => [c.block, c.kind]),
+    [
+      [start + 2n, "sale"],
+      [start + 9n, "buy"],
+    ],
+  );
+  assert.deepEqual(m.queried, [start + 2n, start + 9n]);
+  assert.deepEqual(m.quotes, [[start + 1n, M0]]);
+  assert.equal(recouped(record), CASH_OUT);
+  assert.equal(recordFulfilled(ready(record)), false);
+  assert.deepEqual(recordVerdicts([], ready(record)), ["HE BOUGHT AGAIN."]);
+});
+
+test("exactly offsetting sale and buy inside equal endpoints are intentionally invisible", async () => {
+  const queried: bigint[] = [];
+  assert.deepEqual(
+    await findBalanceChanges(0n, 160n, async (n) => {
+      queried.push(n);
+      return n >= 5n && n < 130n ? 4n : 6n;
+    }),
+    [],
+  );
+  assert.deepEqual(queried, [0n, 160n]);
+});
+
+test("equal subranges are pruned even when the enclosing range differs", async () => {
+  const queried: bigint[] = [];
+  assert.deepEqual(
+    await findBalanceChanges(0n, 16n, async (n) => {
+      queried.push(n);
+      return n >= 2n && n < 6n ? 90n : n < 12n ? 100n : 80n;
+    }),
+    [{ block: 12n, before: 100n, after: 80n }],
+  );
+  assert.ok(queried.every((n) => n === 0n || n >= 8n));
+});
+
+test("bisection handles empty and adjacent ranges", async () => {
+  for (const [low, high] of [
+    [5n, 5n],
+    [6n, 5n],
+  ]) {
+    assert.deepEqual(
+      await findBalanceChanges(low, high, async () =>
+        assert.fail("Empty range read"),
+      ),
+      [],
     );
   }
-  const expected = values.flatMap((value, i) =>
-    i && value !== values[i - 1] ? [BigInt(i)] : [],
-  );
-  const result = await findBalanceChanges(
-    0n,
-    128n,
-    async (n) => values[Number(n)],
-    async (a, b) => expected.filter((n) => n >= a && n <= b),
-  );
-  assert.deepEqual(
-    result.map((e) => e.block),
-    expected,
-  );
+  assert.deepEqual(await findBalanceChanges(4n, 5n, async (n) => n), [
+    { block: 5n, before: 4n, after: 5n },
+  ]);
 });
 
 test("a sale at the exact quote boundary is allowed; later sales stay allowed and proceeds add his gas back", async () => {
@@ -453,32 +534,19 @@ test("third act lines are word for word and the second act link works in both in
   );
 });
 
-test("rejected range logs fall back to complete adjacent balances without losing cancellations", async () => {
-  let logCalls = 0;
-  const balance = async (n: bigint) => (n >= 5n && n < 130n ? 4n : 6n);
-  const found = await findBalanceChanges(0n, 160n, balance, async () => {
-    logCalls++;
-    throw Error("range logs rejected");
-  });
-  assert.equal(logCalls, 1);
-  assert.deepEqual(
-    found.map((c) => c.block),
-    [5n, 130n],
-  );
-  await assert.rejects(
-    findBalanceChanges(
-      0n,
-      8n,
-      async (n) => {
-        if (n === 2n) throw Error("state unavailable");
-        return 1n;
-      },
-      async () => {
-        throw Error("logs unavailable");
-      },
-    ),
-    /state unavailable/,
-  );
+test("failed endpoint or midpoint reads reject without a scan fallback", async () => {
+  for (const unavailable of [0n, 4n, 8n]) {
+    const queried: bigint[] = [];
+    await assert.rejects(
+      findBalanceChanges(0n, 8n, async (n) => {
+        queried.push(n);
+        if (n === unavailable) throw Error("state unavailable");
+        return n < 5n ? 100n : 90n;
+      }),
+      /state unavailable/,
+    );
+    assert.ok(queried.length <= 3);
+  }
 });
 
 test("fulfilled uses exact wei and is withheld after a buy or while rereading", () => {

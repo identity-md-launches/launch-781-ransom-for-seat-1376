@@ -33,10 +33,6 @@ export type RecordState = {
   failed: boolean;
 };
 export const initialRecordState: RecordState = { pending: true, failed: false };
-export type TransferBlocks = (
-  from: bigint,
-  to: bigint,
-) => Promise<readonly bigint[]>;
 export type RecordSource = {
   latest: () => Promise<PaidBlock>;
   block: (number: bigint) => Promise<PaidBlock>;
@@ -44,16 +40,14 @@ export type RecordSource = {
   receipts: (block: bigint) => Promise<readonly RecordReceipt[]>;
   eth: (block: bigint) => Promise<bigint>;
   quote: (block: bigint, amount: bigint) => Promise<bigint>;
-  transferBlocks: TransferBlocks;
 };
 
-// Each leaf compares adjacent block states. Equal endpoints alone cannot rule
-// out an intervening sale followed by a buy, so Transfer logs guard those ranges.
+// Equal endpoints finish a range immediately; exact cancellations are invisible.
+// Only differing endpoints are bisected down to adjacent block states.
 export async function findBalanceChanges(
   before: bigint,
   end: bigint,
   balance: RecordSource["balance"],
-  transferBlocks: TransferBlocks,
 ): Promise<BalanceChange[]> {
   const cache = new Map<bigint, Promise<bigint>>();
   const read = (block: bigint) => {
@@ -61,41 +55,12 @@ export async function findBalanceChanges(
     return cache.get(block)!;
   };
   const changes: BalanceChange[] = [];
-  let logsAvailable = true;
   async function split(low: bigint, high: bigint): Promise<void> {
     if (low >= high) return;
     const [a, b] = await Promise.all([read(low), read(high)]);
+    if (a === b) return;
     if (high - low === 1n) {
-      if (a !== b) changes.push({ block: high, before: a, after: b });
-      return;
-    }
-    if (a === b) {
-      if (logsAvailable) {
-        try {
-          const candidates = [...new Set(await transferBlocks(low + 1n, high))]
-            .filter((block) => block > low && block <= high)
-            .sort((a, b) => (a < b ? -1 : 1));
-          for (const block of candidates) await split(block - 1n, block);
-          return;
-        } catch {
-          logsAvailable = false;
-        }
-      }
-      // Some public archive providers reject range logs. Scan adjacent states
-      // in bounded RPC batches instead; never interpret a failed log read as [];
-      let previous = a;
-      for (let first = low + 1n; first <= high; first += 6n) {
-        const numbers = Array.from(
-          { length: Number(high - first + 1n < 6n ? high - first + 1n : 6n) },
-          (_, i) => first + BigInt(i),
-        );
-        const values = await Promise.all(numbers.map(read));
-        values.forEach((value, i) => {
-          if (previous !== value)
-            changes.push({ block: numbers[i], before: previous, after: value });
-          previous = value;
-        });
-      }
+      changes.push({ block: high, before: a, after: b });
       return;
     }
     const middle = (low + high) / 2n;
@@ -131,11 +96,8 @@ export async function extendWalletRecord(
   const start = previous?.through ?? PAID_START - 1n;
   if (previous && latest.number <= start) return previous;
   const balance = await source.balance(latest.number);
-  const changes = await findBalanceChanges(
-    start,
-    latest.number,
-    source.balance,
-    source.transferBlocks,
+  const changes = await findBalanceChanges(start, latest.number, (block) =>
+    block === latest.number ? Promise.resolve(balance) : source.balance(block),
   );
   const result: WalletRecord = {
     through: latest.number,
