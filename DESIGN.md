@@ -1,86 +1,80 @@
-# Design system — Ransom for Seat 1376
+# Design system — Seat #1376 / FREE1376
 
 ## Overview
 
-A single dark page for reading the seat’s onchain story and trading FREE1376. The face is the only image. Orange carries the seat’s voice, cyan marks live verification and focus, and the orange–peach–cyan gradient connects the ransom meter to the primary trade action. Flat panels, fine borders, restrained labels and monospace type follow the requested Identity.MD family character.
+A dark, monospace Ethereum site in three hash-selected acts. The first retains the existing seat portrait, ransom meter, trading panel, testament, mechanics and contracts. The second is a sealed testament-style block. The third presents the key's contract image and provenance. The new navigation sits immediately below the existing header; all other first-act composition stays in place.
 
-The desktop hero pairs the face and headline with the ransom and trade panel. At widths up to 640px the face fills the column above the caption and headline; trading follows in the normal scroll flow. Between 641px and 47rem the existing compact face/headline grid remains. DOM order stays face, identity, headline, meter, trade. Desktop composition is unchanged. This revision only removes the shared note after the testament and its unused CSS rule; no replacement element or spacing is introduced.
+Orange carries the seat's voice, cyan marks verification and focus, and warm black distinguishes functional panels. The only content images are the onchain seat and key, each rendered as an `img` with a data URI. No new theme, font or component library is introduced.
 
 ## Colors
 
-Canonical definitions: `src/style.css`, `:root`. All colors use sRGB hex; there is no light theme.
+Canonical sRGB values and semantic aliases live in `src/style.css:1`.
 
-| Primitive | Value | Semantic use |
+| Primitive | Value | Semantic role |
 | --- | --- | --- |
-| `--black` | `#030303` | `--bg`: page, amount input; dark text on the primary action |
-| `--warm-black` | `#14100e` | `--surface`: trade panel, holder note, dialogs |
-| `--white` | `#f5f1eb` | `--text`: body, headings, amounts |
-| `--stone` | `#aca49d` | `--muted`: labels, supporting copy |
-| `--orange` | `#f97316` | `--accent`: escape headline, structural accents |
-| `--peach` | `#fdba74` | `--accent-text`: fee copy, action accents, selected controls |
-| `--cyan` | `#22d3ee` | `--signal`, `--focus`: verification text and keyboard outlines |
-| `--charcoal` | `#352c27` | `--line`: section and panel hairlines |
-| `--control-gray` | `#776b63` | `--control-border`: inputs and interactive outlines |
+| `--black` | `#030303` | `--bg`, page/input backgrounds; primary-button text |
+| `--warm-black` | `#14100e` | `--surface`, trade/holder/dialog panels |
+| `--white` | `#f5f1eb` | `--text`, body and values |
+| `--stone` | `#aca49d` | `--muted`, labels and sealed marks |
+| `--orange` | `#f97316` | `--accent`, headline and testament border |
+| `--peach` | `#fdba74` | `--accent-text`, selected tabs and fee text |
+| `--cyan` | `#22d3ee` | `--signal`, `--focus` |
+| `--charcoal` | `#352c27` | `--line`, structural hairlines |
+| `--control-gray` | `#776b63` | `--control-border`, controls and tab baseline |
 
-`--gradient` is `linear-gradient(110deg, #f97316, #fdba74 48%, #22d3ee)`. The primary button uses black text. Selected quick amounts use the local inset color `#241b13`. Color is accompanied by explicit state text, checkmarks, radio selection or an underline.
+`--gradient` is `linear-gradient(110deg, #f97316, #fdba74 48%, #22d3ee)`. Active navigation has a peach underline and `aria-current`, so color is not its only cue. The favicon uses the key's circular ring, an orange-to-peach stroke on black; its outer stroke is 4 units in a 32-unit viewBox, with a faint inner ring matching the original key artwork.
 
-Rechecked for the existing testament on its rendered `#030303` background: orange sealed headline 7.36:1; white opening sentence 18.33:1; muted hash 8.40:1; cyan verification explanation 11.41:1. The holder note uses `#aca49d` on its rendered `#14100e` panel, measured at 7.70:1. The existing gradient action has an incomplete automated contrast check and was not independently sampled in this revision. See `artifacts/validation.md`.
+Rendered testament contrast measured in Chromium: orange/black 7.36:1, white/black 18.33:1, muted/black 8.40:1, cyan/black 11.41:1. The holder panel's muted/warm-black pair measured 7.70:1. The existing gradient action remains an incomplete automated contrast check; no full accessibility certification is claimed.
 
 ## Typography
 
-The system font stack is `SFMono-Regular`, Consolas, Liberation Mono, Menlo, monospace. There are no downloadable font files. The actual face depends on installed system fonts; the stack was inspected in Chromium, not certified on other operating systems.
+`--font`: `SFMono-Regular`, Consolas, `Liberation Mono`, Menlo, monospace. System fonts only, with no font downloads. Root: 16px/1.6, weight 400, tabular numerals, antialiasing. Actual installed fallback varies by system.
 
-- Root body: 16px, weight 400, unitless line-height 1.6. Changing values use tabular numerals.
-- Tokens: `--caption` 12px, `--small` 13px, `--body` 16px, `--title` 22px.
-- Hero and `.sealed-headline`: `clamp(3.5rem, 5.4vw, 4.75rem)`, weight 700, line-height .99, tracking −.075em. It becomes 3.3rem below 62rem, then a viewport-scaled mobile size below 47rem. Short phones use 1.875rem.
-- Section titles: 22px/1.3, weight 500; trade title becomes 18px on mobile. Subheadings use 16px/1.5, weight 700.
-- Opened testament: 16px/1.9 desktop; 15px/1.9 mobile for the narrow monospace measure. The text preserves whitespace with `white-space: pre-wrap`, without rewriting or inserting paragraph breaks into MANIFESTO.
-- Long prose is constrained by the 76ch testament container. Addresses and hashes wrap anywhere, never truncate. The displayed minimum rounds down; its title exposes the exact base-unit conversion.
-- Existing compact mobile labels use 10–12px; controls and inputs remain larger. The enlarged face places the trade action further down the page. The amount input is 24px on mobile, above the iOS automatic zoom threshold.
+Tokens: caption 12px, small 13px, body 16px, title 22px. Section titles use 22px/1.3 at weight 500. Hero and `.sealed-headline` use `clamp(3.5rem, 5.4vw, 4.75rem)`, weight 700, line-height .99, tracking −.075em. Below 62rem this becomes 3.3rem, below 47rem `clamp(1.9rem, 8.9vw, 3.4rem)`, and on short phones 1.875rem. The third act intentionally adds no visible heading or explanatory copy.
 
-Headings use balanced wrapping. Body text is selectable. Selection is peach with black text. No additional editorial font or icon font is loaded.
+Act links use 13px desktop / 12px mobile and 10px sealed marks, retaining the site's compact label hierarchy. Their labels stay on one line at 360px; at narrower widths or enlarged text their contents may wrap. The opened manifesto stays 16px/1.9 desktop, 15px/1.9 mobile, preserving its whitespace. Long addresses and hashes wrap anywhere; only the explicitly abbreviated dead-address links stay unbroken.
+
+`src/display.ts` formats changing quote values without floating-point conversion: two fixed decimals for FREE1376, six for ETH, thousands separators on both quote lines. Estimates round to nearest, minimums down, and exact values remain in titles. The paid amount truncates to four decimals; the remaining ETH rounds up to four, so the displayed pair sums to 2.8.
 
 ## Layout
 
-`src/style.css` defines spacing tokens from 4 to 64px: `--space-1/2/3/4/6/8/12/16`. Rules use those corresponding values directly, with 6, 10, 14, 18 and 20px adjustments for the compact trading controls.
+Spacing tokens `--space-1/2/3/4/6/8/12/16` map to 4/8/12/16/24/32/48/64px. `.wrap` caps width at 1120px with 32px desktop gutters; below 47rem gutters are 16px. Header remains in normal flow.
 
-`.wrap` caps content at 1120px, with 32px side margins on desktop and 16px on mobile. `.opening` is a two-column grid (`1fr 440px`, 80px gap), becoming a 400px action column and 36px gap below 62rem. At 47rem it becomes a single flow with a compact 110px face beside the headline (80px below 740px viewport height). The final `@media (max-width: 640px)` override changes `.seat-story` to block flow, gives `.face-stage` 100% width with zero padding, and restores 26px/14px caption margins. The image fills the stage inside its existing 1px border: 341px at a 375px viewport and 286px at 320px. Vertical spacing elsewhere retains its existing short-screen rules. The header stays in normal flow; no fixed overlay hides content.
+The first act's `.opening` grid uses `1fr 440px` with an 80px gap, becoming a 400px action column with a 36px gap below 62rem. Below 47rem it becomes one column; at ≤640px the face fills the story column above the caption/headline. The 641px–47rem compact face/headline grid is retained. Trade and hook controls remain in normal flow. Live data and mechanics reflow from columns to stacked content. Existing contract rows move addresses below labels on phones.
 
-The live data row uses three columns, then two plus a full-width supply line. The mechanics grid changes from three columns to one. Contract rows place label/address/copy alongside one another on desktop and move the address to its own wrapping row on mobile. The wallet dialog is at most 440px wide, stays within 16px viewport gutters, and scrolls within the dynamic viewport height.
+`.act-tabs` reuses `.trade-tabs`, adding three native links instead of trade buttons. Desktop columns are equal; mobile proportions are `.8fr 1.2fr 1fr` to accommodate the sealed marks. Each link has at least 44px height, 14px vertical padding, and an active 2px underline. No scrolling tab strip or clipped labels.
 
-Observed without horizontal overflow: 320×740, 375×667, 375×812, 640×900, 641×900, 768×1024 and 1440×1100. The face is above the headline throughout the ≤640px range; the trade action is reached by scrolling on phones. 200% text enlargement reflowed at 375px; browser-native zoom was not tested. Extra warnings, Sell approvals, and future hook states remain in normal flow. The burial sentence was rechecked at 320, 375, 640, 641, 768 and 1440px: the existing wrapping rule keeps the full address and payment text within the holder panel without clipping. All remaining CSS, tokens and responsive rules are byte-identical to the parent. Removing the testament note naturally shortens that section; its padding, border and neighboring section rules are unchanged.
+Second-act spacing and border come from `.document-section` and `.testament-body`: 64px desktop section padding, existing mobile section spacing, a left orange line and a 76ch maximum measure. Third-act `.key-act` also caps at 76ch. Its image caps at 440px and shrinks with available width; a 32px gap precedes the rows. `.key-row` reuses `.contract-row`, with 150px label plus a flexible value column on desktop, one column below 47rem. Full checksummed holder/liberator addresses remain selectable.
+
+Rendered checks cover 320, 360, 375, 640, 641, 768 and 1440px, plus short/tall 375px viewports. No horizontal document overflow was observed. Act links also reflowed under 200% text enlargement. Native browser zoom was not exercised.
 
 ## Elevation & Depth
 
-The page intentionally has no shadows, glow, blur or floating navigation. Surface color and 1px structural borders separate panels. The face has a white 10% outline inside its frame. A native modal dialog supplies the only overlay, with an 85% black backdrop; native modal behavior handles focus containment and background inertness.
+Flat surfaces and 1px dividers; no shadows, glows or floating navigation. Seat and key images have white 10% outlines. The existing native wallet dialog uses an 85% black backdrop, contains scrolling, and retains native modal focus behavior.
 
 ## Shapes
 
-Panels are square. Buttons and selection chips have a 2px radius. Hairlines and small frame corner marks echo the face geometry. The meter is an 8px horizontal strip with a gradient fill and a control-strength border. Arrows and checkmarks are text glyphs, not extra images.
+Square panels, 2px control corners, 8px meter. The new ring favicon is circular without introducing a rounded panel style. The social preview is 1200×630: the actual seat face in its outlined frame beside `SEAT #1376` and `$FREE1376`, in the same palette and monospace stack. Source assets live in `public/`; identical copies ship in `dist/`.
 
 ## Components
 
-Implementation lives in `src/App.tsx`; styles in `src/style.css`. These are page patterns, not a separate component library.
-
-| Component/pattern | Reuse and states |
+| Pattern / source | Behavior |
 | --- | --- |
-| `External({href, children, className})` | Opens an explicit destination with `noreferrer`; decorative outgoing arrow. |
-| `ContractRow({name, value, href})` | Full wrapping address, copy button, persistent copy outcome. Clipboard failure explains manual selection. |
-| `.face-stage` | Only `img` receives the SVG data URI. A reserved square shows loading/unavailable copy until reads succeed. |
-| `.ransom` / `.meter` | Accessible progressbar, verbatim hook status, explicit ENSLAVED / FREED, NOT BURIED / BURIED label. |
-| `.trade-panel` | Native labeled input, quick amounts, keyboard tabs, native slippage radios, fee and minimum details. A single gradient submit action changes to the exact missing approval. |
-| `.primary-button` | Gradient for the current trade action; pending label and disabled state during requests. Secondary controls retain outlines. |
-| `.error`, `.warning`, `.activity` | Plain recovery language, adjacent errors and persistent transaction feedback; errors never auto-dismiss. |
-| `.hook-action` | State-dependent permissionless action with its error and transaction feedback nearby. |
-| `.wallet-dialog` | Lists EIP-6963 wallets without displaying wallet-provided icons; falls back to browser providers or mobile links. Escape closes and focus returns to its trigger. |
-| `.document-section` | Indexed heading, large block spacing, fine lower divider; used for testament, mechanics and contracts. |
-| `.testament-body` | Defaults to the sealed state, including while loading. `SEALED.` uses the existing orange headline rules and 14px bottom spacing. The commitment uses `.hash`; explanation uses `.integrity`. Only a buried snapshot renders `.manifesto`, its existing hash result, and the events link through `External`. Sealed content ends with the verification explanation; opened content ends with the events link. There is no trailing note in either state. |
-| `.holder-note` | Existing surface and typography: 12px monospace, `--muted` on `--surface`, 32px top margin, 20px padding (16px below 47rem), `overflow-wrap: anywhere`. The final sentence checks burial first, then hook approval, using the same snapshot block. Burial states the full dead address and payment in the same transaction; otherwise the original approved/must-approve text remains. |
+| `External`, `ContractRow` / `src/App.tsx` | Existing external links with decorative arrows; full address, copy control and persistent result. The key contract/resource use these patterns. |
+| `.act-tabs` / `src/App.tsx:507` | Native hash links with `aria-current="page"`; second always marked sealed, third until key supply is 1. Tab/Enter navigation, ordinary browser history and shareable links. |
+| `useAct`, `scrollToHash` / `src/acts.ts` | Hash selects exactly one act. Act links scroll to top; other hashes select the first act and scroll to the matching section if present. |
+| `seatCopy`, `feeNote` / `src/display.ts` | Existing enslaved copy; paid-state fire copy; buried headline/title. Each state is tested. |
+| `.testament-body` / `src/App.tsx` | First-act testament remains sealed until a buried snapshot. Second act renders only `SEALED.` and its specified opening sentence, without a commitment or chain reads. |
+| `useKey`, `KeyAct` / `src/KeyAct.tsx` | Key image and definition-list rows. Supply zero shows only `holder: nobody yet`. Given key adds conditional liberator, transaction if logs succeed, witness counts/request, Etherscan/OpenSea. |
+| `readKey` / `src/key.ts` | Reads at one block; contractURI before issuance, tokenURI afterwards. Full checksum conversion, exact log window and first-16-byte UUID. SVG remains in an img. |
+| Existing trade/dialog/hook controls | Quote, slippage, approval, simulation, transaction and error behavior retained. Original action handlers and both transaction modules are byte-identical. |
 
-Interactive outlines are 2px cyan with 4px offset. The amount field uses a 2px offset. Tab controls use roving focus with arrow/Home/End keys. Most major actions are at least 44px tall; compact quick amounts and radio chips are 32–36px, above the 24px baseline with separate non-overlapping targets. Mouse hover changes text/border only on hover-capable devices. Transitions are limited to 120ms and enabled only when reduced motion is not requested. Forced-color rules retain controls, selections and focus.
+Key polling retries every 15 seconds; an initial failure leaves the key section busy and empty, and later failures retain the last successful data. This follows the assignment's prohibition on extra third-act text; it does not invent a holder or add an error paragraph. A direct second-act load makes no RPC reads and retains the initial browser title until another act reads the seat. Once known, burial controls the title across act switches.
 
-## Do’s and Don’ts
+Existing focus outlines remain 2px cyan with 4px offset; forced-color rules use `Highlight`. Reduced motion disables the existing 120ms transitions. Navigation adds no animations. Wallet Escape and focus return, trade keyboard tabs, validation focus and copying were exercised.
 
-Reuse `.wrap`, `.document-section`, semantic tokens and the existing heading hierarchy when extending the page. Use `.primary-button` for the one current trade action, ordinary outlines for secondary actions, and `External`/`ContractRow` for linked contract data. Preserve complete addresses and exact contract strings.
+## Do's and Don'ts
 
-Do not add remote fonts, runtime third-party scripts, social links, decorative pictures, or a second theme. Never inline the seat’s SVG as HTML. Do not replace unavailable chain values with sample numbers. Any new page should keep static relative asset paths and hash navigation unless an additional HTML page is explicitly exported.
+Use `.wrap`, existing semantic color tokens, `.document-section`, and contract-row spacing. For another act, use native hash links and keep browser history/keyboard behavior. Preserve `chain.ts`, `wallet.ts`, the CSP and transaction handlers when making presentation changes. Only pass decoded SVG metadata to `img`; never inject it into the document. Keep exact base-unit values for trading and conservative display rounding for minimums.
+
+Retain the requested wording, system monospace stack, static relative URLs and locally bundled icons. Use one gradient primary trade action. Do not introduce new explanatory copy into the sealed/key acts or replace unavailable chain data with sample values.

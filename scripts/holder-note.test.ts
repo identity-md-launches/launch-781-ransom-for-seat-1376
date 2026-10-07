@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import type { Snapshot } from "../src/chain.js";
 
 // Exercise the production JSX expression without extracting a new component or
@@ -32,16 +34,32 @@ function visit(node: ts.Node) {
 }
 visit(source);
 assert.ok(sentence, "The holder note must contain its state-driven sentence");
-const renderSentence = new Function(
+const expression = ts.transpileModule(
+  `const result = (${sentence.getText(source)});`,
+  {
+    compilerOptions: { jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2022 },
+  },
+).outputText;
+const evaluate = new Function(
   "data",
-  `return (${sentence.getText(source)});`,
-) as (data?: Pick<Snapshot, "buried" | "seatApproved">) => string;
+  "React",
+  "DEAD_URL",
+  `${expression}; return result;`,
+);
+const renderSentence = (data?: Pick<Snapshot, "buried" | "seatApproved">) => {
+  const node = evaluate(
+    data,
+    React,
+    "https://etherscan.io/address/0x000000000000000000000000000000000000dEaD",
+  );
+  return typeof node === "string" ? node : renderToStaticMarkup(node);
+};
 
 test("buried: cleared approval shows the burial and same-transaction payment", () => {
   for (const seatApproved of [false, true]) {
     assert.equal(
       renderSentence({ buried: true, seatApproved }),
-      "The seat is at 0x000000000000000000000000000000000000dEaD. The 2.8 ETH was paid in the same transaction.",
+      'The seat is at <a class="dead-address" href="https://etherscan.io/address/0x000000000000000000000000000000000000dEaD" target="_blank" rel="noreferrer">0x…dEaD</a>. The 2.8 ETH was paid in the same transaction.',
     );
   }
 });

@@ -352,7 +352,7 @@ export default async function revision(page) {
   );
   check(
     (await page.locator(".holder-note").textContent()).endsWith(
-      "The seat is at 0x000000000000000000000000000000000000dEaD. The 2.8 ETH was paid in the same transaction.",
+      "The seat is at 0x…dEaD. The 2.8 ETH was paid in the same transaction.",
     ),
     "Burial with cleared getApproved shows burial and same-transaction payment",
   );
@@ -391,7 +391,7 @@ export default async function revision(page) {
   await refresh();
   check(
     (await page.locator(".holder-note").textContent()).endsWith(
-      "The seat is at 0x000000000000000000000000000000000000dEaD. The 2.8 ETH was paid in the same transaction.",
+      "The seat is at 0x…dEaD. The 2.8 ETH was paid in the same transaction.",
     ),
     "Burial takes precedence even when approval is still true",
   );

@@ -24,10 +24,10 @@ async (page) => {
     "Face is an SVG data URI in img",
   )
   check(
-    (await page.locator(".contract-status").innerText()).startsWith(
-      "ENSLAVED.",
+    (await page.locator(".contract-status").innerText()).endsWith(
+      " ETH to go",
     ),
-    "Live contract status shown",
+    "Live remaining ransom shown",
   )
   check(
     (await page.locator(".manifesto").count()) === 0 &&

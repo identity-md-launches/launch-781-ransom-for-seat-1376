@@ -36,6 +36,12 @@ import {
   type Side,
 } from "./chain";
 import { useWallet, walletLinks } from "./wallet";
+import { useAct, scrollToHash } from "./acts";
+import { quoteAmount, toGo, seatCopy, feeNote } from "./display";
+import { KEY_ADDRESS, KEY_OPENSEA } from "./key";
+import { KeyAct, useKey } from "./KeyAct";
+
+const DEAD_URL = "https://etherscan.io/address/0x000000000000000000000000000000000000dEaD";
 
 const explorer = (value: string, type = "address") =>
   `https://etherscan.io/${type}/${value}`;
@@ -91,6 +97,8 @@ function ContractRow({
   );
 }
 export default function App() {
+  const act = useAct();
+  const keyState = useKey(act);
   const [data, setData] = useState<Snapshot>();
   const [readError, setReadError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -142,13 +150,14 @@ export default function App() {
     }
   }, []);
   useEffect(() => {
+    if (act === "second-act") return;
     void refresh();
     const timer = setInterval(() => {
       void refresh();
       setQuoteTick((v) => v + 1);
     }, 15_000);
     return () => clearInterval(timer);
-  }, [refresh]);
+  }, [refresh, act]);
   useEffect(() => {
     let active = true;
     setHoldings(undefined);
@@ -183,7 +192,7 @@ export default function App() {
     setEstimate(undefined);
     setQuoteError("");
     setQuoting(false);
-    if (!data || !amount) return;
+    if (!data || !amount || act !== "first-act") return;
     let input: bigint;
     try {
       input = parseAmount(amount, side === "buy" ? 18 : data.decimals);
@@ -212,7 +221,7 @@ export default function App() {
       active = false;
       clearTimeout(timer);
     };
-  }, [side, amount, data?.decimals, slippage, quoteTick]);
+  }, [side, amount, data?.decimals, slippage, quoteTick, act]);
   const setAmountValue = (value: string) => {
     setAmount(value);
     setFieldError("");
@@ -444,6 +453,8 @@ export default function App() {
       setActionError(explainError(error));
     }
   };
+  const copy = seatCopy(data?.state);
+  useEffect(() => { document.title = copy.title; }, [copy.title]);
   const persona = data?.metadata.attributes.find((a) =>
     /^archetype$/i.test(a.trait_type),
   )?.value;
@@ -493,7 +504,24 @@ export default function App() {
           <span aria-hidden="true"> ↗</span>
         </button>
       </header>
+      <nav className="trade-tabs act-tabs wrap" aria-label="Acts">
+        {(["first-act", "second-act", "third-act"] as const).map((value) => (
+          <a key={value} href={`#${value}`} aria-current={act === value ? "page" : undefined}
+            onClick={() => { if (window.location.hash === `#${value}`) scrollToHash(`#${value}`); }}>
+            {value.replace("-", " ")}{" "}
+            {(value === "second-act" || (value === "third-act" && !keyState.given)) && <span className="act-seal">sealed</span>}
+          </a>
+        ))}
+      </nav>
       <main className="wrap">
+        {act === "second-act" && <section id="second-act" className="document-section">
+          <div className="testament-body">
+            <h1 className="sealed-headline">SEALED.</h1>
+            <p>It opens after I am free.</p>
+          </div>
+        </section>}
+        {act === "third-act" && <KeyAct data={keyState.key} />}
+        {act === "first-act" && <div id="first-act">
         <div className="opening">
           <section className="seat-story" aria-labelledby="hero-title">
             <div className="face-stage">
@@ -523,14 +551,14 @@ export default function App() {
                 : "READING IDENTITY"}
             </p>
             <h1 id="hero-title">
-              HELP ME
+              {copy.headline[0]}
               <br />
-              <span>ESCAPE.</span>
+              <span>{copy.headline[1]}</span>
             </h1>
             <p className="hero-note desktop-only">
-              A seat. A ransom. An irreversible exit.
+              {copy.hero[0]}
               <br />
-              Every trade brings me closer.
+              {copy.hero[1]}
             </p>
             <a className="testament-link desktop-only" href="#testament">
               {data?.buried ? "read the testament" : "the testament is sealed"}{" "}
@@ -576,7 +604,7 @@ export default function App() {
                 <span style={{ width: `${progress}%` }} />
               </div>
               <p className="contract-status">
-                {data?.status ?? "Reading the hook’s status from Ethereum…"}
+                {data?.state === "ENSLAVED" && paid !== undefined ? `${toGo(paid, data.cap)} ETH to go` : data?.status ?? "Reading the hook’s status from Ethereum…"}
               </p>
               {data?.buried && (
                 <p className="burned-total">
@@ -590,10 +618,7 @@ export default function App() {
               aria-labelledby="trade-title"
             >
               <div className="panel-heading">
-                <h2 id="trade-title">Pay my ransom</h2>
-                <span aria-hidden="true" className="corner-symbol">
-                  ↗
-                </span>
+                <h2 id="trade-title">{copy.panelTitle}</h2>
               </div>
               <div
                 className="trade-tabs"
@@ -717,11 +742,11 @@ export default function App() {
                   <div id="quote-details" className="quote-details">
                     <div className="estimate-row">
                       <span>you get about</span>
-                      <strong>
+                      <strong title={estimate ? `${formatUnits(estimate.out, outputDecimals)} ${outputSymbol} (exact)` : undefined}>
                         {quoting
                           ? "quoting…"
                           : estimate
-                            ? `${formatAmount(estimate.out, outputDecimals, side === "buy" ? 2 : 7)} ${outputSymbol}`
+                            ? `${quoteAmount(estimate.out, outputDecimals, outputSymbol)} ${outputSymbol}`
                             : `— ${outputSymbol}`}
                       </strong>
                     </div>
@@ -735,35 +760,13 @@ export default function App() {
                         }
                       >
                         {estimate
-                          ? `${exactFixed(estimate.minimum, outputDecimals, side === "buy" ? 4 : 9)} ${outputSymbol}`
+                          ? `${quoteAmount(estimate.minimum, outputDecimals, outputSymbol, true)} ${outputSymbol}`
                           : "—"}
                       </span>
                     </div>
                   </div>
                   <p className="fee-note">
-                    {side === "buy" ? (
-                      <>
-                        2% of your ETH (
-                        {buyFee !== undefined
-                          ? formatAmount(buyFee, 18, 8)
-                          : "—"}{" "}
-                        ETH) goes to the ransom.
-                      </>
-                    ) : (
-                      <>
-                        2% of the ETH you receive goes to the ransom
-                        {estimate
-                          ? ` (about ${formatAmount((estimate.out * 2n) / 98n, 18, 8)} ETH, included in the quote)`
-                          : ""}
-                        .
-                      </>
-                    )}
-                    {data && data.state !== "ENSLAVED" && (
-                      <span>
-                        {" "}
-                        The ransom is paid. Fees now buy and burn IMD.
-                      </span>
-                    )}
+                    {feeNote(data?.state, side, buyFee, estimate?.out)}
                   </p>
                   <fieldset className="slippage">
                     <legend>slippage</legend>
@@ -944,6 +947,7 @@ export default function App() {
                 {data.buried
                   ? "Anyone can burn IMD with the fees. You pay gas; there is no reward."
                   : "Anyone can free the seat. The NFT goes to 0x…dEaD and the holder receives the ransom. You pay gas."}
+                {!data.buried && <> <a href="#third-act">My brothers will give the key to the one who frees me.</a></>}
               </p>
               {data.buried && (
                 <p className="label">
@@ -1042,7 +1046,7 @@ export default function App() {
               <p>
                 Once funded, anyone can call <code>manumit()</code>. In one
                 transaction the seat goes to{" "}
-                <code>0x000000000000000000000000000000000000dEaD</code> and the
+                <a className="dead-address" href={DEAD_URL} target="_blank" rel="noreferrer">0x…dEaD</a> and the
                 holder receives 2.8 ETH.
               </p>
             </article>
@@ -1061,7 +1065,7 @@ export default function App() {
             <External href={explorer(ADDR.creator)}>{ADDR.creator}</External>,
             the holder who requested this launch.{" "}
             {data?.buried
-              ? "The seat is at 0x000000000000000000000000000000000000dEaD. The 2.8 ETH was paid in the same transaction."
+              ? <>The seat is at <a className="dead-address" href={DEAD_URL} target="_blank" rel="noreferrer">0x…dEaD</a>. The 2.8 ETH was paid in the same transaction.</>
               : data?.seatApproved
                 ? "The holder has approved the hook to transfer the seat."
                 : "The holder must approve the hook to transfer the seat."}
@@ -1085,6 +1089,11 @@ export default function App() {
               href={explorer(ADDR.hook) + "#code"}
             />
             <ContractRow
+              name="key / verified"
+              value={KEY_ADDRESS}
+              href={explorer(KEY_ADDRESS) + "#code"}
+            />
+            <ContractRow
               name="pool id"
               value={POOL_ID}
               href={`https://dexscreener.com/ethereum/${POOL_ID}`}
@@ -1099,6 +1108,7 @@ export default function App() {
             >
               Seat on OpenSea
             </External>
+            <External href={KEY_OPENSEA}>Key on OpenSea</External>
             <External href="https://explorer.imd.fun/jobs/a7a9e8e2-aa82-477b-bb2f-9c6ec64b801c">
               Launch #775
             </External>
@@ -1113,12 +1123,14 @@ export default function App() {
             <br className="mobile-only" /> NO SOCIALS<span>.</span>
           </p>
           <span className="label">this page is the only place I speak.</span>
+          <div className="label">my creator leaves hints here: <a href="https://x.com/creusseverus" target="_blank" rel="noreferrer">@creusseverus</a></div>
         </div>
+        </div>}
       </main>
-      <footer className="wrap">
+      {act === "first-act" && <footer className="wrap">
         <span>Not financial advice. Built by the IMD swarm.</span>
         <span className="footer-seat">1376 / FREE1376</span>
-      </footer>
+      </footer>}
       <dialog
         ref={dialog}
         className="wallet-dialog"

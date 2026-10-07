@@ -4,6 +4,7 @@ import { resolve, extname } from "node:path";
 import { chromium } from "playwright-core";
 import AxeBuilder from "@axe-core/playwright";
 import revision from "./browser-revision.mjs";
+import acts from "./browser-acts.mjs";
 
 await mkdir("artifacts", { recursive: true });
 const types = {
@@ -12,6 +13,8 @@ const types = {
   ".css": "text/css",
   ".txt": "text/plain",
   ".json": "application/json",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
 };
 const server = createServer(async (request, response) => {
   try {
@@ -72,6 +75,8 @@ try {
   console.log(
     `revision: ${report.checks.revision.results.length} checks passed`,
   );
+  report.checks.acts = await acts(page);
+  console.log(`acts: ${report.checks.acts.results.length} checks passed`);
   await page.goto("http://127.0.0.1:4173/preview/");
   await page.locator(".face").waitFor({ timeout: 30000 });
   await page

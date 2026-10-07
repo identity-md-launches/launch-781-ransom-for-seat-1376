@@ -1220,3 +1220,48 @@ footer {
     margin-block: 26px 14px;
   }
 }
+
+/* Act navigation uses the trade tabs' underline and existing palette. */
+.act-tabs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-block-end: 0;
+}
+.act-tabs > a {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px 6px;
+  padding: 14px 2px;
+  min-height: 44px;
+  font-size: var(--small);
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+.act-tabs > a[aria-current] {
+  color: var(--accent-text);
+  border-bottom-color: var(--accent-text);
+}
+.act-seal {
+  font-size: 0.625rem;
+  color: var(--muted);
+}
+.dead-address { white-space: nowrap; }
+.key-act { max-width: 76ch; margin-inline: auto; }
+.key-image {
+  display: block;
+  width: min(100%, 440px);
+  height: auto;
+  margin: 0 auto 32px;
+  outline: 1px solid rgb(255 255 255 / 0.1);
+}
+.key-rows { margin: 0; }
+.key-row { grid-template-columns: 150px minmax(0, 1fr); }
+.key-row dd { margin: 0; overflow-wrap: anywhere; }
+.key-row a { text-decoration: none; }
+@media (max-width: 47rem) {
+  .act-tabs { grid-template-columns: 0.8fr 1.2fr 1fr; }
+  .act-tabs > a { font-size: 0.75rem; column-gap: 4px; }
+  .key-row { grid-template-columns: minmax(0, 1fr); }
+}
