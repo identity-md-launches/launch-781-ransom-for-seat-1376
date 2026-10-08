@@ -227,7 +227,7 @@ test("paid-block search includes the starting and latest blocks and uses logarit
   );
 });
 
-test("hourly chart sampling reserves the live endpoint and caps at 48, then evenly spaces", () => {
+test("hourly chart sampling reserves the live endpoint, caps at 48, and stays on the burn grid", () => {
   assert.deepEqual(chartTimes(0n, 0n), [0n]);
   assert.deepEqual(chartTimes(0n, 2n * 3600n + 120n), [
     0n,
@@ -236,18 +236,14 @@ test("hourly chart sampling reserves the live endpoint and caps at 48, then even
     7320n,
   ]);
   assert.deepEqual(chartTimes(0n, 7200n), [0n, 3600n, 7200n]);
-  assert.equal(chartTimes(0n, 48n * 3600n - 1n).length, 48);
+  assert.ok(chartTimes(0n, 48n * 3600n - 1n).length <= 48);
   for (const duration of [48n * 3600n, 300n * 3600n + 13n]) {
     const times = chartTimes(startTime, startTime + duration);
-    assert.equal(times.length, 48);
+    assert.ok(times.length <= 48);
     assert.equal(times[0], startTime);
     assert.equal(times.at(-1), startTime + duration);
-    const step = duration / 47n;
-    times
-      .slice(1)
-      .forEach((time, i) =>
-        assert.ok(time - times[i] === step || time - times[i] === step + 1n),
-      );
+    for (const time of times.slice(0, -1))
+      assert.equal((time - startTime) % 3600n, 0n);
   }
 });
 
@@ -292,12 +288,12 @@ test("chart resolves each hour to its own block, reads once per sample and skips
     [startTime, startTime + 7200n, startTime + 10800n, startTime + 14400n],
   );
   const long = await readPaidHistory(historySource(60));
-  assert.equal(long.points.length, 47);
+  assert.equal(long.points.length, 31);
   const withLive = chartPoints(long.points, {
     ...reading(),
     block: long.points.at(-1)!.block + 1n,
   });
-  assert.equal(withLive.length, 48);
+  assert.equal(withLive.length, 32);
   assert.equal(withLive.at(-1)?.out, reading().out);
 });
 

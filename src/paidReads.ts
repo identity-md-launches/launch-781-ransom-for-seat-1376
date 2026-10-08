@@ -1,29 +1,21 @@
+import { hourGrid, estimatedBlock } from "./chartSampling";
+import { chartReadLimit } from "./pastPoints";
+import { readSwapMeter } from "./swapReads";
 import {
-  createPublicClient,
   decodeFunctionResult,
   encodeFunctionData,
   formatUnits,
-  http,
   parseAbi,
   type Address,
   type Hex,
 } from "viem";
-import { mainnet } from "viem/chains";
-import {
-  ADDR,
-  POOL_ID,
-  POOL_KEY,
-  quoteAbi,
-  rpc,
-  stateAbi,
-  tokenAbi,
-} from "./chain";
+import { latestReads, pastReads } from "./readPools";
+import { ADDR, POOL_ID, POOL_KEY, quoteAbi, stateAbi, tokenAbi } from "./chain";
 import { ETH_USD_FEED, feedAbi, freshDollars } from "./dollars";
 import { burnedAt } from "./burnReads";
 import { findBurnPaidBlock } from "./burnHistory";
 import { HIS_WALLET, M0, NINE_WALLETS } from "./watch";
 import {
-  chartTimes,
   sellAmount,
   type PaidBlock,
   type PaidHistory,
@@ -36,10 +28,7 @@ export const MULTICALL3 = "0xcA11bde05977b3631167028862bE2a173976CA11";
 export const aggregateAbi = parseAbi([
   "function aggregate3((address target, bool allowFailure, bytes callData)[] calls) payable returns ((bool success, bytes returnData)[] returnData)",
 ]);
-export const archive = createPublicClient({
-  chain: mainnet,
-  transport: http(ARCHIVE_URL, { timeout: 15_000, retryCount: 1 }),
-});
+export const archive = pastReads;
 type Call = { target: Address; allowFailure: boolean; callData: Hex };
 export type ArchiveCall = (request: {
   to: Address;
@@ -201,7 +190,7 @@ export type LiveSource = {
   point: (block: PaidBlock, amount: bigint) => Promise<SellPoint>;
 };
 export const liveSource: LiveSource = {
-  latest: () => rpc.getBlock(),
+  latest: () => latestReads.getBlock(),
   balance: (blockNumber) =>
     archive.readContract({
       address: ADDR.token,
@@ -227,11 +216,11 @@ export type HistorySource = {
   point: (block: PaidBlock) => Promise<SellPoint>;
 };
 export const historySource: HistorySource = {
-  latest: () => archive.getBlock(),
+  latest: () => latestReads.getBlock(),
   block: (blockNumber) => archive.getBlock({ blockNumber }),
   total: nineTotal,
   burned: burnedAt,
-  point: (block) => readSellPoint(block, M0),
+  point: (block) => readSwapMeter(block.number),
 };
 
 export const findPaidBlock = findBurnPaidBlock;
@@ -279,25 +268,23 @@ export async function readPaidHistory(
   const paid = await findPaidBlock(latest, source);
   if (!paid) return { points: [] };
   onPaid?.(paid);
-  const headers = new Map<bigint, Promise<PaidBlock>>();
-  const block = (number: bigint) => {
-    if (!headers.has(number)) headers.set(number, source.block(number));
-    return headers.get(number)!;
-  };
   const points: SellPoint[] = [];
-  const seen = new Set<bigint>();
-  const times = chartTimes(paid.timestamp, latest.timestamp);
-  // Keep the origin even when payment happens in this visit's latest block;
-  // otherwise later live polls would replace the chart's only starting point.
-  for (const time of times.length === 1 ? times : times.slice(0, -1)) {
-    try {
-      const at = await blockAtTime(time, paid, latest, block);
-      if (seen.has(at.number)) continue;
-      seen.add(at.number);
-      points.push(await source.point(at));
-    } catch {
-      // One unavailable historical block must not hide the other samples.
-    }
-  }
-  return { paid, points };
+  await Promise.all(
+    hourGrid(paid.timestamp, latest.timestamp).map((k) =>
+      chartReadLimit(async () => {
+        try {
+          const number = estimatedBlock(k, paid, latest);
+          points.push(
+            await source.point({
+              number,
+              timestamp: paid.timestamp + k * 3600n,
+            }),
+          );
+        } catch {
+          // Compatibility one-shot reader. The active hourHistory visit owns retries.
+        }
+      }),
+    ),
+  );
+  return { paid, points: points.sort((a, b) => (a.block < b.block ? -1 : 1)) };
 }

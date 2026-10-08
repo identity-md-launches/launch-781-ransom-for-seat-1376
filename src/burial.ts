@@ -1,21 +1,14 @@
-import {
-  createPublicClient,
-  getAddress,
-  http,
-  numberToHex,
-  type Hex,
-} from "viem";
+import { getAddress, numberToHex, type Hex } from "viem";
 import { ADDR, hookAbi } from "./chain";
 
 export const BURIAL_START = 26130900n;
 export const CREATOR_PAID =
   "0x12f457cfb647c80d6e273e6691a31625fd025906b82c043614fbff887aea5666";
 // Historical state must never fall back to PublicNode.
-export const archiveRpc = createPublicClient({
-  transport: http("https://eth.drpc.org", { timeout: 9_000, retryCount: 0 }),
-});
+import { latestReads, pastReads } from "./readPools";
+export const archiveRpc = pastReads;
 export const burialSource = {
-  latest: () => archiveRpc.getBlockNumber({ cacheTime: 0 }),
+  latest: () => latestReads.getBlockNumber({ cacheTime: 0 }),
   buried: (blockNumber: bigint) =>
     archiveRpc.readContract({
       address: ADDR.hook,

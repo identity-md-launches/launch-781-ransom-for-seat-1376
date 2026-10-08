@@ -1,18 +1,15 @@
 import {
-  createPublicClient,
   decodeFunctionResult,
   encodeFunctionData,
   formatUnits,
-  http,
   parseAbi,
   parseAbiItem,
 } from "viem";
-import { mainnet } from "viem/chains";
 import { ADDR, POOL_ID, quoteAbi, stateAbi, tokenAbi } from "./chain";
 import { feedAbi, freshDollars } from "./dollars";
 import { aggregateAbi, marketCalls, MULTICALL3 } from "./paidReads";
 import { sellAmount, type SellReading } from "./paid";
-import { HIS_WALLET } from "./watch";
+import { HIS_WALLET, M0 } from "./watch";
 import type { PoolSwap } from "./swapTape";
 
 export const POOL_MANAGER = "0x000000000004444c5dc75cB358380D2e3dE08A90";
@@ -23,16 +20,12 @@ export const blockInfoAbi = parseAbi([
   "function getBlockNumber() view returns (uint256)",
   "function getCurrentBlockTimestamp() view returns (uint256)",
 ]);
-const makeClient = (url: string) =>
-  createPublicClient({
-    chain: mainnet,
-    transport: http(url, { timeout: 9000, retryCount: 0 }),
-  });
-export const swapRpc = makeClient("https://ethereum-rpc.publicnode.com");
-export const swapArchive = makeClient("https://eth.drpc.org");
+import { latestReads, pastReads } from "./readPools";
+export const swapRpc = latestReads;
+export const swapArchive = pastReads;
 
-// Balance must be known before encoding the quoter's input. Repeat it inside the
-// single market aggregate and reject a race, so a partial sale cannot overquote.
+// Optimistically quote M0 with balance and all market/block data in one call.
+// A smaller balance needs only its capped quote at the block the aggregate read.
 export async function readSwapMeter(
   block?: bigint,
   client = block === undefined ? swapRpc : swapArchive,
@@ -50,17 +43,9 @@ export async function readSwapMeter(
       args: [HIS_WALLET],
     }),
   };
-  const balance = await client.readContract({
-    address: ADDR.token,
-    abi: tokenAbi,
-    functionName: "balanceOf",
-    args: [HIS_WALLET],
-    ...at,
-  });
-  const amount = sellAmount(balance);
-  const market = marketCalls(amount);
+  const market = marketCalls(M0);
   const calls = [
-    ...(amount === 0n ? market.slice(1) : market),
+    ...market,
     balanceCall,
     ...(["getBlockNumber", "getCurrentBlockTimestamp"] as const).map(
       (functionName) => ({
@@ -85,17 +70,13 @@ export async function readSwapMeter(
     functionName: "aggregate3",
     data: response.data,
   });
-  if (results.length !== calls.length || results.some((r) => !r.success))
+  if (
+    results.length !== calls.length ||
+    results.slice(1).some((r) => !r.success)
+  )
     throw Error("Incomplete aggregate");
-  const data = results.map((r) => r.returnData);
-  const out =
-    amount === 0n
-      ? 0n
-      : decodeFunctionResult({
-          abi: quoteAbi,
-          functionName: "quoteExactInputSingle",
-          data: data.shift()!,
-        })[0];
+  const quote = results[0];
+  const data = results.slice(1).map((r) => r.returnData);
   const [sqrt] = decodeFunctionResult({
     abi: stateAbi,
     functionName: "getSlot0",
@@ -128,14 +109,38 @@ export async function readSwapMeter(
   });
   const dollars = freshDollars({ answer, updatedAt }, Number(timestamp) * 1000);
   if (
-    sellAmount(confirmedBalance) !== amount ||
     sqrt <= 0n ||
     dollars === undefined ||
     answered < round ||
-    (block !== undefined && number !== block) ||
-    (amount > 0n && out <= 0n)
+    (block !== undefined && number !== block)
   )
     throw Error("Market data unavailable");
+  const amount = sellAmount(confirmedBalance);
+  let out = 0n;
+  if (amount === M0) {
+    if (!quote.success) throw Error("Sell quote reverted");
+    out = decodeFunctionResult({
+      abi: quoteAbi,
+      functionName: "quoteExactInputSingle",
+      data: quote.returnData,
+    })[0];
+  } else if (amount > 0n) {
+    // Always pin the follow-up, even if the first call used latest.
+    const response = await (
+      block === undefined && client === swapRpc ? swapArchive : client
+    ).call({
+      to: ADDR.quoter,
+      blockNumber: number,
+      data: marketCalls(amount)[0].callData,
+    });
+    if (!response.data) throw Error("No sell quote");
+    out = decodeFunctionResult({
+      abi: quoteAbi,
+      functionName: "quoteExactInputSingle",
+      data: response.data,
+    })[0];
+  }
+  if (amount > 0n && out <= 0n) throw Error("Market data unavailable");
   const marketCap =
     (Number(formatUnits(supply, 18)) / (Number(sqrt) / 2 ** 96) ** 2) * dollars;
   if (!Number.isFinite(marketCap)) throw Error("Market data unavailable");
@@ -176,6 +181,6 @@ export const swapSource = {
   logs: readPoolSwaps,
   meter: readSwapMeter,
   timestamp: async (block: bigint) =>
-    (await swapRpc.getBlock({ blockNumber: block })).timestamp,
+    (await swapArchive.getBlock({ blockNumber: block })).timestamp,
 };
 export type SwapSource = typeof swapSource;

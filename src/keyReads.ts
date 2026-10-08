@@ -1,12 +1,14 @@
 import { getAddress } from "viem";
-import { parseMetadata, rpc } from "./chain";
+import { parseMetadata } from "./chain";
 import { KEY_ADDRESS, keyAbi, uuidFromBytes32, type KeyData } from "./key";
+
+import { latestReads, pastReads } from "./readPools";
 
 type KeyFunction = (typeof keyAbi)[number]["name"];
 export const keySource = {
-  block: () => rpc.getBlockNumber({ cacheTime: 0 }),
+  block: () => latestReads.getBlockNumber({ cacheTime: 0 }),
   read: (functionName: KeyFunction, blockNumber: bigint) =>
-    rpc.readContract({
+    pastReads.readContract({
       address: KEY_ADDRESS,
       abi: keyAbi,
       functionName,

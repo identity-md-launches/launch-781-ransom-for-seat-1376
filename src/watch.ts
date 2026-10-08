@@ -1,8 +1,10 @@
 import { readBatchedWatch } from "./watchBatch";
 import type { Address } from "viem";
-import { ADDR, POOL_ID, rpc, stateAbi, tokenAbi } from "./chain";
+import { ADDR, POOL_ID, stateAbi, tokenAbi } from "./chain";
 import { ETH_USD_FEED, feedAbi, freshDollars } from "./dollars";
 import { fixedAmount } from "./display";
+
+import { latestReads, pastReads } from "./readPools";
 
 export const NINE_WALLETS = [
   "0xE6936bb632144feFF2C6ae0BbA1adB7C80336B84",
@@ -26,9 +28,9 @@ export const WATCH_INTERVAL = 15_000;
 const Q192 = 1n << 192n;
 
 export const watchSource = {
-  block: () => rpc.getBlock(),
+  block: () => latestReads.getBlock(),
   balance: (owner: Address, blockNumber: bigint) =>
-    rpc.readContract({
+    pastReads.readContract({
       address: ADDR.token,
       abi: tokenAbi,
       functionName: "balanceOf",
@@ -36,7 +38,7 @@ export const watchSource = {
       blockNumber,
     }),
   supply: (blockNumber: bigint) =>
-    rpc.readContract({
+    pastReads.readContract({
       address: ADDR.token,
       abi: tokenAbi,
       functionName: "totalSupply",
@@ -44,7 +46,7 @@ export const watchSource = {
     }),
   price: async (blockNumber: bigint) =>
     (
-      await rpc.readContract({
+      await pastReads.readContract({
         address: ADDR.stateView,
         abi: stateAbi,
         functionName: "getSlot0",
@@ -53,7 +55,7 @@ export const watchSource = {
       })
     )[0],
   dollars: (blockNumber: bigint) =>
-    rpc.readContract({
+    pastReads.readContract({
       address: ETH_USD_FEED,
       abi: feedAbi,
       functionName: "latestRoundData",
@@ -75,9 +77,7 @@ export type WatchSnapshot = {
 };
 
 // Commit a complete, same-block snapshot or reject it as a whole.
-export async function readWatch(
-  source?: WatchSource,
-): Promise<WatchSnapshot> {
+export async function readWatch(source?: WatchSource): Promise<WatchSnapshot> {
   if (!source) return readBatchedWatch();
   const block = await source.block();
   const [balances, main, dead, supply, sqrtPriceX96, round] = await Promise.all(

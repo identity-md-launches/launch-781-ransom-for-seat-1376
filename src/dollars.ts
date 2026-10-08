@@ -1,5 +1,5 @@
 import { parseAbi } from "viem";
-import { rpc } from "./chain";
+import { latestReads as rpc } from "./readPools";
 
 export const ETH_USD_FEED = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
 export const feedAbi = parseAbi([

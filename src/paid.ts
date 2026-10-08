@@ -1,3 +1,4 @@
+import { hourGrid } from "./chartSampling";
 import { CASH_OUT, M0, watchVerdicts, type WatchSnapshot } from "./watch";
 
 export const PAID_START = 26139700n;
@@ -11,6 +12,7 @@ export type SellPoint = {
 export type SellReading = SellPoint & { balance: bigint; amount: bigint };
 export type PaidHistory = { paid?: PaidBlock; points: SellPoint[] };
 export type PaidState = {
+  initialSettled?: boolean;
   history?: PaidHistory;
   live?: SellReading;
   historyPending: boolean;
@@ -39,19 +41,15 @@ export const marketDollars = (value: number) =>
 
 export { recordOfferRules as offerRules } from "./walletRecord";
 
-// Reserve the final slot for the live reading, including in the 48th hour.
+// The live head has its own slot; historical samples stay on burn + k hours.
 export function chartTimes(start: bigint, end: bigint): bigint[] {
   if (end <= start) return [start];
-  const elapsed = end - start;
-  if (elapsed >= 48n * 3600n)
-    return Array.from(
-      { length: 48 },
-      (_, i) => start + (elapsed * BigInt(i)) / 47n,
-    );
-  const times: bigint[] = [];
-  for (let time = start; time < end && times.length < 47; time += 3600n)
-    times.push(time);
-  return [...times, end];
+  return [
+    ...hourGrid(start, end)
+      .map((k) => start + k * 3600n)
+      .filter((t) => t < end),
+    end,
+  ];
 }
 
 export function chartPoints(history: readonly SellPoint[], live?: SellReading) {

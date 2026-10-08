@@ -9,99 +9,7 @@ import {
 import { chartRange } from "./swapTape";
 import { chartTicks, tickLabel } from "./chartAxis";
 
-type Dot = { block: bigint; x: number; value: number };
-type Frame = { dots: Dot[]; range: [number, number] };
-function useChartFrame(
-  points: readonly SellPoint[],
-  left: number,
-  right: number,
-  reduced: boolean,
-  mode: string,
-) {
-  const [frame, setFrame] = useState<Frame>({
-    dots: [],
-    range: chartRange([]),
-  });
-  const current = useRef(frame),
-    lastMode = useRef(mode);
-  const edges = useRef({ left, right });
-  const key = points.map((p) => `${p.block}:${p.out}`).join(",");
-  useEffect(() => {
-    const range = chartRange(points.map((p) => sellPercentage(p.out)));
-    const start = Number(points[0]?.timestamp ?? 0n),
-      end = Number(points.at(-1)?.timestamp ?? 0n);
-    const dots = points.map((p, i) => ({
-      block: p.block,
-      value: sellPercentage(p.out),
-      x:
-        points.length === 1
-          ? right
-          : left +
-            (right - left) *
-              (mode === "live"
-                ? i / (points.length - 1)
-                : (Number(p.timestamp) - start) / Math.max(1, end - start)),
-    }));
-    const target: Frame = { dots, range };
-    const from = current.current;
-    const snap =
-      reduced ||
-      !from.dots.length ||
-      mode !== lastMode.current ||
-      edges.current.right !== right;
-    edges.current = { left, right };
-    lastMode.current = mode;
-    if (snap) {
-      current.current = target;
-      setFrame(target);
-      return;
-    }
-    const step = (right - left) / Math.max(1, dots.length - 1);
-    const old = new Map(from.dots.map((p) => [p.block, p]));
-    const next = new Set(dots.map((p) => p.block));
-    const exiting =
-      mode === "live"
-        ? from.dots
-            .filter((p) => !next.has(p.block))
-            .map((p) => ({ ...p, x: left - step }))
-        : [];
-    const targets = [...exiting, ...dots];
-    const starts = targets.map(
-      (p) =>
-        old.get(p.block) ?? {
-          ...p,
-          x: right + step,
-          value: from.dots.at(-1)!.value,
-        },
-    );
-    let id = 0,
-      began: number | undefined;
-    const animate = (time: number) => {
-      began ??= time;
-      const t = Math.min(1, (time - began) / 850),
-        ease = 1 - (1 - t) ** 3;
-      const value: Frame = {
-        range: [
-          from.range[0] + (range[0] - from.range[0]) * ease,
-          from.range[1] + (range[1] - from.range[1]) * ease,
-        ],
-        dots: targets.map((p, i) => ({
-          ...p,
-          x: starts[i].x + (p.x - starts[i].x) * ease,
-          value: starts[i].value + (p.value - starts[i].value) * ease,
-        })),
-      };
-      current.current = t === 1 ? target : value;
-      setFrame(current.current);
-      if (t < 1) id = requestAnimationFrame(animate);
-    };
-    id = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(id);
-    // Data signature prevents unrelated block/age updates from restarting motion.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, left, right, reduced, mode]);
-  return frame;
-}
+import { useChartFrame } from "./useChartFrame";
 
 export function LiveSellChart({
   livePoints,
@@ -109,7 +17,8 @@ export function LiveSellChart({
   live,
   pending,
   historyPending,
-  failed,
+  initialSettled,
+  historySettled,
   direction,
   reduced,
 }: {
@@ -118,7 +27,9 @@ export function LiveSellChart({
   live?: SellReading;
   pending: boolean;
   historyPending: boolean;
-  failed: boolean;
+  failed?: boolean;
+  initialSettled?: boolean;
+  historySettled?: boolean;
   direction: number;
   reduced: boolean;
 }) {
@@ -135,7 +46,16 @@ export function LiveSellChart({
     observer.observe(container.current);
     return () => observer.disconnect();
   }, []);
-  const points = mode === "live" ? livePoints : history;
+  const series = mode === "live" ? livePoints : history;
+  const ready =
+    mode === "live"
+      ? (initialSettled ?? !pending)
+      : (historySettled ?? !historyPending);
+  const points = !series.length && live ? [live] : series;
+  const noPast =
+    mode === "live"
+      ? !livePoints.length
+      : !history.some((p) => p.block !== live?.block);
   const labelWidth =
     Math.max(
       ...chartRange(points.map((p) => sellPercentage(p.out))).map(
@@ -148,7 +68,7 @@ export function LiveSellChart({
     right = width - 76,
     top = 48,
     bottom = 230;
-  const frame = useChartFrame(points, left, right, reduced, mode);
+  const frame = useChartFrame(points, left, right, reduced, mode, ready);
   const y = (value: number) =>
     bottom -
     ((value - frame.range[0]) / (frame.range[1] - frame.range[0])) *
@@ -216,9 +136,13 @@ export function LiveSellChart({
       <figure
         ref={container}
         className="live-chart"
+        data-series={mode}
+        data-settled={ready}
+        data-complete={mode === "live" ? !pending : !historyPending}
+        data-point-count={series.length}
         aria-busy={mode === "live" ? pending : historyPending}
       >
-        {points.length > 0 ? (
+        {ready && points.length > 0 ? (
           <>
             {frame.range[1] < 100 && (
               <p className="live-threshold-note label">
@@ -262,7 +186,7 @@ export function LiveSellChart({
                   <rect
                     x={left}
                     y={top - 12}
-                    width={right - left}
+                    width={(right - left) * frame.reveal}
                     height={bottom - top + 24}
                   />
                 </clipPath>
@@ -295,7 +219,10 @@ export function LiveSellChart({
                 <polyline points={line} className="live-chart-line" />
               </g>
               {head && (
-                <g className={`live-chart-head ${arrow}`}>
+                <g
+                  className={`live-chart-head ${arrow}`}
+                  opacity={frame.reveal === 1 ? 1 : 0}
+                >
                   <circle
                     className="live-head-ring"
                     cx={head.x}
@@ -343,13 +270,14 @@ export function LiveSellChart({
             )}
           </>
         ) : (
-          <p className="live-chart-empty label">—</p>
+          <p className="live-chart-empty label" role="status">
+            {ready ? "—" : "loading…"}
+          </p>
         )}
       </figure>
-      {failed && (
-        <p className="label">
-          Live reads are unavailable. Check your connection and retry; previous
-          values may be out of date.
+      {ready && noPast && (
+        <p className="label" role="status">
+          Past reads are unavailable. Retrying…
         </p>
       )}
     </section>

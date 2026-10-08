@@ -1,3 +1,4 @@
+import { createHourHistory } from "./hourHistory";
 import { useEffect, useState } from "react";
 import {
   initialPaidState,
@@ -60,10 +61,11 @@ export function createPaidHistoryVisit(
 }
 export function usePaidHistory(watch: WatchState) {
   const paid = !!watch.data && watchTotals(watch.data).burned >= H0;
-  const [visit] = useState(() => createPaidHistoryVisit());
-  const [state, setState] = useState(initialPaidState);
+  const [visit] = useState(() => createHourHistory());
+  const [state, setState] = useState(visit.getSnapshot);
   useEffect(() => {
-    if (paid) return visit(setState);
+    if (paid || visit.getSnapshot().history?.paid)
+      return visit.subscribe(setState);
   }, [paid, visit]);
   return state;
 }

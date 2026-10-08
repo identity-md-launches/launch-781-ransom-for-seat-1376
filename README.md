@@ -1,12 +1,10 @@
 # FREE1376 — Seat #1376
 
-Continuation of job **e7e7db8f-092b-4d71-8deb-45d9ee6946cc**, prepared for the same publication name **free1376**, **free1376.site.identitymd.eth** / https://free1376.site.identitymd.eth.limo.
+Continuation of **840d299f-690c-408f-aa14-45dfa61f89ff**, prepared for the same IdentityMD publication name **free1376** / **free1376.site.identitymd.eth**. This revision changes chart loading/recovery and display-read providers. The established appearance, other copy, trade behavior, `chain.ts`, `wallet.ts`, all CSS, dependencies and build configuration are preserved. CSP changes only by adding the requested providers to `connect-src`.
 
-This revision fixes the seven reviewed issues: centered odometer punctuation, nonnegative chart ranges with round grid steps, trader ETH including the hook fee, unsigned impacts that round to zero, a one-minute failed-log cooldown, batched watch/first-act snapshots, the phone hero lines, and the two specified copy replacements. The established palette, fonts, components, other wording and transaction logic are preserved. `chain.ts`, `wallet.ts`, CSP, build configuration, dependencies and lockfile retain their original bytes.
+## Install, preview, rebuild
 
-## Install, preview and rebuild
-
-Use Node 22+ and the supplied lockfile:
+Use Node 22+ and the existing lockfile:
 
 ```sh
 npm ci
@@ -16,54 +14,61 @@ npm run build
 npm run preview -- --host 127.0.0.1
 ```
 
-Vite's unchanged `base: "./"` emits relative asset URLs. Deliver all of `dist/`, including its images and runtime licenses. No backend, keys, remote fonts or dependency archives are needed at runtime.
+The worker installed the unchanged manifest/lockfile into `/tmp/free1376-work`, copied source/configuration there, ran the same scripts, and copied the complete production export back. No repository dependency directory, lockfile, configuration, ignore file, or Git metadata was changed. Vite retains `base: "./"`. `dist/index.html`, all referenced assets, icons, social image and runtime licenses are delivered; no backend, external font, npm mirror or private key is needed.
 
-The worker installed dependencies in `/tmp/free1376-axis` using copies of the existing manifest and lockfile (`npm ci --ignore-scripts --no-audit --no-fund`), built there, and copied the production export back. This respects the assignment's protected dependency paths. No repository `node_modules`, package-manager cache, submodule, ignore-file change or Git metadata write was made.
+## Chart and reads
 
-## Data behavior
+- `readPools.ts` owns the seven-provider PAST and LATEST pools in the brief's exact order. Each failed attempt warns with host/method/block/error and immediately advances after an HTTP/RPC/malformed-result failure or six-second timeout. Failover sticks; the next request after ten minutes returns to the first provider. EVM reverts remain results. Historical state/headers/receipts never use PublicNode. Transaction code retains its original client.
+- `readSwapMeter` reads the M0 quote, balance, slot0, ETH/USD round, total supply and block number/time in one aggregate. Below M0, it quotes the smaller amount at that same block; a zero bag has zero proceeds without a reverting zero-amount swap. LIVE and hourly history share this reader.
+- LIVE discovers the newest **40 swap blocks**, plus the immediate predecessor of the oldest for impact. Startup and catch-up have independent 60-second log-failure cooldowns. Catch-up overlaps its last five blocks and stays within 2,000-block windows.
+- Hourly blocks are time-interpolated between burn and latest, without header searches. The displayed time comes from the aggregate. Grid indices are `0,s,2s,…`, with the smallest positive integer `s` that leaves at most 47 historical points. New grid hours are scheduled while the page stays open. Final grid readings retain their original estimated blocks across visits.
+- Both histories share four past-read slots. Each result joins its series immediately. Failed points retry at 5/10/20/40 seconds, then every 60 seconds; missing hours remain incomplete. Tape failures concern logs only; a failed historical quote leaves its impact as `—`.
+- `free1376:chart:v1` is the only localStorage key. It retains the burn block, decimal-encoded readings at least 64 blocks behind the observed head, at most 40 swap-block readings and their logs, their single predecessor, and at most 47 grid readings. Access is guarded; malformed/foreign data or a different burn is discarded. Reloads expose both cached series and the receipt immediately, then confirm the burn with three parallel reads. Unfinalized or missing readings are fetched again.
+- A series stays empty with **“loading…”** until its first attempts settle, or eight seconds elapse. Its first appearance and each mode switch reveal left-to-right over 900 ms (instant with reduced motion). Later entries start at the right, left, or neighbour midpoint; departures move left. Every frame is ordered by x, including interrupted motion. A settled series with no past points retains the available live head and **“Past reads are unavailable. Retrying…”**. The chart's previous connection-error paragraph is removed.
 
-`watchBatch.ts` reads eleven balances, supply, pool price, Chainlink and block number/time through one Multicall3 `aggregate3` call on each unchanged 15-second watch tick. Required failures reject the entire snapshot; the watch retains its previous values and its exact `Live reads are unavailable. Retrying…` message.
+## Actual checks
 
-`snapshotBatch.ts` supplies App's first-act snapshot through one aggregate per refresh, including the optional Chainlink feed. It discovers the hook's immutable IMD address once per visit, then reads and verifies that address and its decimals inside each aggregate. That one-time discovery is an additional startup call. A failed optional feed clears only dollar estimates; a required failure preserves the existing snapshot error behavior. Sealed manifesto data is not exposed or required. The original readers remain available for regression comparison, without modifying `chain.ts`.
+Production build and TypeScript check pass. **130/130 tests pass**, including the existing regression suite; three prior tests were updated where their expectations explicitly contradicted this assignment (24→40 blocks, shared→separate cooldowns, and evenly spaced→fixed-grid hours). New tests cover animation starts/interruption/order, initial settlement/eight seconds, aggregate shape/routing, bounded concurrency, retry timing, cache/finality/invalid data, burn confirmation, hourly extension, overlap and error text.
 
-Latest reads and recent logs use **ethereum-rpc.publicnode.com**; existing historical readers retain **eth.drpc.org**. The live swap meter's existing capped quote, 4-second head polling, 60-second heartbeat and all wallet/permission logic remain intact. Startup history and live catch-up share a 60-second cooldown after a failed log response, preserving cursors and the ability to show new swaps during a slow initial history scan.
+Mainnet measurements use the production export in Chromium, direct browser RPC requests, no wallet and no mocked RPC responses. Every count below covers the same first 15 seconds. Provider columns count **all display requests**, including the unchanged wallet record; the final column isolates historical chart aggregates, including burn search/confirmation.
 
-Tape BUY ETH is `abs(amount0) × 100 / 98`; SELL ETH is `abs(amount0) × 98 / 100`. Bigint calculations precede the existing four-decimal display. The token amount is unchanged. Rounded zero impacts display `0.00%`. Chart ranges retain their padding with a zero floor; ticks are multiples of 0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10, 25 or 50 percentage points, including during animation.
+| Load | LIVE complete | SINCE THE BURN complete | PublicNode | dRPC | Sentio | Pocket | Chart past-state |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Fresh | 1.285 s | 1.552 s | 12 | 100 | 1 | 4 | 74 |
+| Reload 1 | 0.308 s | 0.122 s | 13 | 28 | 0 | 0 | 3 |
+| Reload 2 | 0.283 s | 0.129 s | 13 | 28 | 0 | 0 | 3 |
+| Reload 3 | 0.381 s | 0.199 s | 13 | 28 | 0 | 0 | 3 |
+| Reload 4 | 0.248 s | 0.294 s | 13 | 28 | 0 | 0 | 3 |
+| Reload 5 | 0.342 s | 0.142 s | 13 | 28 | 0 | 0 | 3 |
 
-## Checks and evidence
+Other providers received zero requests in these windows. Both modes had 40 swap points and 17 hourly points. These are observed completion times, not future network guarantees. All five reloads met two seconds and at most ten chart past-state requests.
 
-**116/116 unit tests**, clean typecheck and production build, **91 production-browser checks**, and a real local mainnet-fork buy/sell/pump check passed. The build retains Vite's advisory about the JS chunk exceeding 500 kB; configuration is protected. See [validation](artifacts/validation.md), [design system](DESIGN.md), and [preservation hashes](artifacts/preservation.json).
+The fresh and first-reload captures each contain **900 animation frames over 15 seconds, zero decreasing x pairs**, and 100 chart screenshots targeted every 100 ms for the first ten seconds (largest actual inter-capture gap 106 ms). LIVE is selected initially, SINCE THE BURN at five seconds, and LIVE again at ten. Reduced motion produced the complete line with zero active chart animations.
 
-Measured publicnode requests in real 60-second browser windows after 20 seconds of warmup, without a connected wallet:
+With dRPC and PublicNode blocked by request interception **and storage cleared followed by a full reload**, LIVE completed in **1.971 s** and SINCE THE BURN in **3.288 s**. Fallbacks included Blast, Sentio and Pocket. All three acts loaded, and the expected provider warnings appeared. No page JavaScript errors occurred. Separate browser tests served this export at both `free1376.sites.imd.fun` and `free1376.eth.limo` origins by intercepting only application assets; direct mainnet reads completed at both origins. This is a CORS check, not a deployment.
 
-| Act | All RPC requests before → after | `eth_call` before → after |
-| --- | --- | --- |
-| First | 160 → 28 | 148 → 24 |
-| Second | 98 → 42 | 70 → 18 |
+Keyboard Home/End/arrows, pointer selection, both chart modes, disclosures, act navigation and wallet-chooser open/Escape passed. No horizontal overflow at 320/360/560/768/1280 px. Axe reported zero scoped WCAG A/AA violations at 320/560/1280 px. See [validation](artifacts/validation.md), [design](DESIGN.md), [browser report](artifacts/chart-browser.json), [frame summary](artifacts/chart-frame-summary.json), [100 ms screenshots](artifacts/chart-frames/), [interface review](artifacts/chart-review.json), and [preservation hashes](artifacts/preservation.json). Artifacts are delivered separately by the assignment runner, which excludes `artifacts/` from its Git staging.
 
-These are observed quiet-market windows, not a cap under trading activity. The measurement includes unchanged key/head polling; the one-time discovery occurs before the measured window. [Before](artifacts/requests-before.json) and [after](artifacts/requests-after.json) include method counts and timestamps. [The mainnet screenshot](artifacts/after-mainnet.png) shows the centered `7.58` and corrected tape. The fork's 0.5 ETH buy shows `0.5000 ETH`; its pump reaches 292.33% with a nonnegative axis and 50-point steps.
-
-Reproduce the checks with installed Chromium/Anvil:
+Reproduce browser checks with installed Playwright/Chromium:
 
 ```sh
-npm run typecheck
-npm test
-npm run build
-CHROMIUM_PATH=/path/to/chrome-headless-shell npx --no-install tsx scripts/check-swap-browser.mjs
-NODE_USE_ENV_PROXY=1 npx --no-install tsx scripts/check-live-fixes-mainnet.ts
-NODE_USE_ENV_PROXY=1 npx --no-install tsx scripts/check-live-fixes-render.mjs
-NODE_USE_ENV_PROXY=1 npx --no-install tsx scripts/check-live-fixes-fork.mjs
-NODE_USE_ENV_PROXY=1 node scripts/check-request-rate.mjs after dist
-python3 scripts/check-live-fixes-preservation.py
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright-core/index.mjs \
+CHROMIUM_PATH=/absolute/path/to/chrome-headless-shell \
+node scripts/check-chart-browser.mjs
+
+PLAYWRIGHT_MODULE=/absolute/path/to/playwright-core/index.mjs \
+AXE_MODULE=/absolute/path/to/@axe-core/playwright/dist/index.mjs \
+CHROMIUM_PATH=/absolute/path/to/chrome-headless-shell \
+node scripts/check-chart-review.mjs
+
+python3 scripts/check-chart-preservation.py
 python3 scripts/check-package.py
 ```
 
-Browser scripts manage and close a temporary static server and browser, serving the export under `/preview/`. This worker's Chromium path is `/opt/imd-tools/ms-playwright/chromium_headless_shell-1246/chrome-headless-shell-linux64/chrome-headless-shell`. For a before measurement, point the request-rate script at an unmodified parent export. The fork script uses zero generated accounts, locally impersonates the existing public holder and funds it only in Anvil. It deploys nothing and sends no mainnet transaction.
-
-Etherscan returned HTTP 403/challenge pages; its direct trade comparison remains unverified. Receipt amounts and the required formulas were checked on eight mainnet trades; six also have a matching WETH transfer at displayed precision. Sender native-balance changes do not establish trader receipts for routed trades. Native macOS/SF Mono, physical phones, screen readers and native browser zoom were unavailable. Local Chromium tested four installed monospace choices and all three odometers; this is not a claim to have rendered every platform font.
+The supplied MCP browser could not start because its Chrome binary was absent. The checks instead used available Playwright Chromium 134 in a bounded foreground process that closed its browser and temporary preview. An ambiguous wallet-button test selector was corrected and the interaction phase rerun; this was a test harness error. No screen-reader session, physical phone, native macOS/SF Mono, native browser zoom or full cross-browser audit is claimed. The six-domain review is scoped to this revision. Vite retains its existing advisory for a JavaScript chunk above 500 kB; protected build settings were not changed.
 
 ## Publish as free1376
 
-Submit the source, unchanged manifest/lockfile, documentation and complete `dist/` export to the IdentityMD publisher as the next version of **free1376.site.identitymd.eth**, publication name **free1376**. The publisher serves the export without rebuilding. After publishing, check all three act links, phone hero/testament, chart modes, tape links and wallet chooser at the hosted address.
+Submit this source, unchanged package manifest/lockfile and the complete **`dist/`** directory as the next version of **free1376.site.identitymd.eth**, publication name **free1376**. The IdentityMD publisher serves the export without rebuilding. Keep relative asset URLs and all runtime files. After publication, check `#first-act`, `#second-act`, `#third-act`, the chart switches, tape links and wallet chooser at the public URL.
 
-**Publication is pending the network publisher.** No publishing capability is exposed in this environment; no new IPFS CID, Git commit or hosted update is claimed. The local source/export are ready for submission. Direct Etherscan comparison remains a prepublication check limitation, documented with the actual evidence rather than reported as passed.
+The local deliverable is complete and prepared for that publisher. This worker has no publication endpoint or credentials and does not claim a new hosted version, CID or Git commit. No chain transaction or contract deployment was performed.

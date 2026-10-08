@@ -78,7 +78,7 @@ test("tape ETH includes the hook fee on BUY and removes it on SELL; tiny impacts
   assert.equal(pointChange(-0.0051), "−0.01%");
   assert.equal(pointChange(0.0051), "+0.01%");
 });
-test("failed initial logs and catch-up share a minute cooldown; retry resumes missing ranges", async () => {
+test("failed initial logs and catch-up have independent minute cooldowns; retry resumes overlapped ranges", async () => {
   let now = 0,
     head = 20000n,
     fail = true;
@@ -108,7 +108,7 @@ test("failed initial logs and catch-up share a minute cooldown; retry resumes mi
   }
   assert.deepEqual(
     reads.map((r) => r.at),
-    [0, 60000, 120000],
+    [0, 4000, 60000, 64000, 120000, 124000],
   );
   assert.ok(visit.getSnapshot().historyFailed);
   fail = false;
@@ -118,7 +118,7 @@ test("failed initial logs and catch-up share a minute cooldown; retry resumes mi
   now += 4000;
   await visit.poll();
   await setImmediate();
-  assert.ok(reads.some((r) => r.from === 20002n));
+  assert.ok(reads.some((r) => r.from === 19997n));
   assert.ok(visit.getSnapshot().live);
 });
 
@@ -362,19 +362,25 @@ test("point slot remains narrow and centers overflowing glyph; phone hero and ex
   );
 });
 
-test('optional dollar feed still clears on its own failure while required snapshot values survive', async () => {
+test("optional dollar feed still clears on its own failure while required snapshot values survive", async () => {
   const f = mockBatch();
   const read = createSnapshotReader(async () => ADDR.token, f.call);
   const published: unknown[] = [];
-  await read(v => published.push(v));
-  assert.deepEqual(published.at(-1), { answer: 2500_00000000n, updatedAt: f.now });
-  f.setFailure('latestRoundData');
-  assert.equal((await read(v => published.push(v))).buried, true);
+  await read((v) => published.push(v));
+  assert.deepEqual(published.at(-1), {
+    answer: 2500_00000000n,
+    updatedAt: f.now,
+  });
+  f.setFailure("latestRoundData");
+  assert.equal((await read((v) => published.push(v))).buried, true);
   assert.equal(published.at(-1), undefined);
-  f.setFailure('getSlot0');
-  await assert.rejects(read(v => published.push(v)));
-  assert.deepEqual(published.at(-1), { answer: 2500_00000000n, updatedAt: f.now });
+  f.setFailure("getSlot0");
+  await assert.rejects(read((v) => published.push(v)));
+  assert.deepEqual(published.at(-1), {
+    answer: 2500_00000000n,
+    updatedAt: f.now,
+  });
   f.setRejected(true);
-  await assert.rejects(read(v => published.push(v)));
+  await assert.rejects(read((v) => published.push(v)));
   assert.equal(published.at(-1), undefined);
 });

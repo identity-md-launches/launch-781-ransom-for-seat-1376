@@ -404,7 +404,13 @@ export function LivePaidSections({
   }, []);
   const live = state.live ?? paid.live;
   return (
-    <div className="live-paid-sections">
+    <div
+      className="live-paid-sections"
+      data-live-complete={!state.historyPending}
+      data-burn-complete={!paid.historyPending}
+      data-live-count={state.points.length}
+      data-burn-count={paid.history?.points.length ?? 0}
+    >
       <LiveSellMeter
         state={state}
         fallback={paid.live}
@@ -417,14 +423,12 @@ export function LivePaidSections({
         live={live}
         pending={state.historyPending}
         historyPending={paid.historyPending}
-        failed={state.historyFailed || paid.historyFailed}
+        initialSettled={state.initialSettled}
+        historySettled={paid.initialSettled}
         direction={state.change}
         reduced={reduced}
       />
-      <EverySwap
-        swaps={state.swaps}
-        failed={state.historyFailed || state.failed}
-      />
+      <EverySwap swaps={state.swaps} failed={state.historyFailed} />
     </div>
   );
 }

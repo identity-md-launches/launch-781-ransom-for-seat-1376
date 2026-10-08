@@ -188,17 +188,17 @@ test("startup scans newest-first 2000-block windows, exactly 10000 blocks; live 
   ]);
   assert.ok(f.visit.getSnapshot().live);
 });
-test("startup takes only 24 swap blocks and one preceding baseline", async () => {
+test("startup takes 40 swap blocks and one preceding baseline", async () => {
   const f = fixture();
   f.rows.push(
-    ...Array.from({ length: 30 }, (_, i) => swap(19900n + BigInt(i))),
+    ...Array.from({ length: 50 }, (_, i) => swap(19900n + BigInt(i))),
   );
   await f.visit.poll();
   await settle();
   assert.equal(f.calls.length, 1);
-  assert.equal(f.visit.getSnapshot().points.length, 24);
-  assert.equal(f.meters.filter((b) => b !== undefined).length, 25);
-  assert.ok(f.meters.includes(19905n));
+  assert.equal(f.visit.getSnapshot().points.length, 40);
+  assert.equal(f.meters.filter((b) => b !== undefined).length, 41);
+  assert.ok(f.meters.includes(19909n));
   assert.equal(f.visit.getSnapshot().swaps.length, 7);
 });
 test("new buy and sell add rows and points; duplicate polls do not duplicate; failed reads retain values", async () => {
@@ -238,7 +238,7 @@ test("new buy and sell add rows and points; duplicate polls do not duplicate; fa
   await settle();
   assert.equal(f.visit.getSnapshot().failed, false);
 });
-test("real meter ABI uses capped balance, one market aggregate at latest, and validates race", async () => {
+test("real meter ABI quotes M0 in one aggregate, then only a smaller bag at the same block", async () => {
   let balance = M0 * 2n,
     confirmed = balance,
     aggregated = 0,
@@ -246,7 +246,26 @@ test("real meter ABI uses capped balance, one market aggregate at latest, and va
   const timestamp = 1791450000n;
   const mock = {
     readContract: async () => balance,
-    call: async (request: { data: `0x${string}`; blockTag: string }) => {
+    call: async (request: {
+      data: `0x${string}`;
+      blockTag?: string;
+      blockNumber?: bigint;
+    }) => {
+      if (request.blockNumber !== undefined) {
+        assert.equal(request.blockNumber, 20000n);
+        const decoded = decodeFunctionData({
+          abi: quoteAbi,
+          data: request.data,
+        });
+        quoted = decoded.args[0].exactAmount;
+        return {
+          data: encodeFunctionResult({
+            abi: quoteAbi,
+            functionName: "quoteExactInputSingle",
+            result: [parseEther("0.4"), 100000n],
+          }),
+        };
+      }
       assert.equal(request.blockTag, "latest");
       aggregated++;
       const calls = decodeFunctionData({
@@ -328,7 +347,7 @@ test("real meter ABI uses capped balance, one market aggregate at latest, and va
   await read();
   assert.equal(quoted, balance);
   confirmed = balance - 1n;
-  await assert.rejects(read, /Market data unavailable/);
+  assert.equal((await read()).amount, confirmed);
   balance = confirmed = 0n;
   const zero = await read();
   assert.equal(zero.out, 0n);
@@ -373,7 +392,7 @@ test("a delayed archive scan never prevents a newer live block from updating", a
     latest: async () => latest,
     timestamp: async (b) => point(b, 0).timestamp,
     logs: async (from, to) =>
-      from < 20000n
+      to === 20000n
         ? new Promise((resolve) => {
             archiveFinish = resolve;
           })

@@ -1,28 +1,15 @@
 import { ADDR, quoteAbi, tokenAbi } from "./chain";
-import { ARCHIVE_URL, archive, marketCalls } from "./paidReads";
-import {
-  createPublicClient,
-  http,
-  decodeFunctionResult,
-  numberToHex,
-  type Hex,
-} from "viem";
+import { archive, marketCalls } from "./paidReads";
+import { decodeFunctionResult, numberToHex, type Hex } from "viem";
 import { HIS_WALLET } from "./watch";
 import { type RecordSource, type RecordReceipt } from "./walletRecord";
 
-// Every historical operation, including receipts and ETH balances, uses dRPC.
-const balances = createPublicClient({
-  transport: http(ARCHIVE_URL, {
-    batch: { batchSize: 3, wait: 0 },
-    timeout: 15_000,
-    retryCount: 1,
-  }),
-});
+import { latestReads } from "./readPools";
 export const recordSource: RecordSource = {
-  latest: () => archive.getBlock(),
+  latest: () => latestReads.getBlock(),
   block: (blockNumber) => archive.getBlock({ blockNumber }),
   balance: (blockNumber) =>
-    balances.readContract({
+    archive.readContract({
       address: ADDR.token,
       abi: tokenAbi,
       functionName: "balanceOf",
