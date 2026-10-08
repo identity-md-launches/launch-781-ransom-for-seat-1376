@@ -1,3 +1,4 @@
+import { readBatchedWatch } from "./watchBatch";
 import type { Address } from "viem";
 import { ADDR, POOL_ID, rpc, stateAbi, tokenAbi } from "./chain";
 import { ETH_USD_FEED, feedAbi, freshDollars } from "./dollars";
@@ -75,8 +76,9 @@ export type WatchSnapshot = {
 
 // Commit a complete, same-block snapshot or reject it as a whole.
 export async function readWatch(
-  source: WatchSource = watchSource,
+  source?: WatchSource,
 ): Promise<WatchSnapshot> {
+  if (!source) return readBatchedWatch();
   const block = await source.block();
   const [balances, main, dead, supply, sqrtPriceX96, round] = await Promise.all(
     [

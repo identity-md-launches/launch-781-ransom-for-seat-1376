@@ -20,6 +20,11 @@ export type PoolSwap = {
 export const swapSide = (swap: Pick<PoolSwap, "amount0">) =>
   swap.amount0 < 0n ? "BUY" : "SELL";
 export const abs = (value: bigint) => (value < 0n ? -value : value);
+// The hook takes 2% on the ETH side outside the pool's Swap delta.
+export const traderEth = (swap: Pick<PoolSwap, "amount0">) =>
+  swap.amount0 < 0n
+    ? (abs(swap.amount0) * 100n) / 98n
+    : (swap.amount0 * 98n) / 100n;
 export const swapOrder = (a: PoolSwap, b: PoolSwap) =>
   a.block === b.block ? a.logIndex - b.logIndex : a.block < b.block ? -1 : 1;
 export const pointsToGo = (percentage?: number) =>
@@ -28,8 +33,10 @@ export const pointsToGo = (percentage?: number) =>
     : percentage >= 100
       ? "UNLOCKED"
       : `${percentage > 0 ? (100 / percentage).toFixed(1) : "∞"}× to go`;
-export const pointChange = (value: number) =>
-  `${value < 0 ? "−" : "+"}${Math.abs(value).toFixed(2)}%`;
+export const pointChange = (value: number) => {
+  const magnitude = Math.abs(value).toFixed(2);
+  return `${magnitude === "0.00" ? "" : value < 0 ? "−" : "+"}${magnitude}%`;
+};
 export function swapAge(timestamp: bigint | undefined, now: number) {
   if (timestamp === undefined) return "—";
   const seconds = Math.max(0, Math.floor(now / 1000) - Number(timestamp));
@@ -44,7 +51,10 @@ export function chartRange(values: readonly number[]): [number, number] {
   const high = valid.length ? Math.max(...valid) : 0;
   const span = Math.max(0.8, high - low);
   const center = (high + low) / 2;
-  return [center - span * 0.75, center + span * 0.75];
+  return [
+    Math.max(0, center - span * 0.75),
+    Math.max(0.6, center + span * 0.75),
+  ];
 }
 export function mergePoints(
   points: readonly SellPoint[],

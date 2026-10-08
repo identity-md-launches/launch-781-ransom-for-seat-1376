@@ -403,7 +403,7 @@ await context.route(
         const calls = decodeFunctionData({ abi: aggregateAbi, data: tx.data })
           .args[0];
         const kind =
-          calls.length === 9 ? "nine" : calls.length === 2 ? "burn" : "market";
+          calls.length === 16 ? "watch" : calls.length === 21 ? "snapshot" : calls.length === 9 ? "nine" : calls.length === 2 ? "burn" : "market";
         report.archiveCalls.push({
           host: new URL(route.request().url()).host,
           block: String(block),
@@ -499,6 +499,20 @@ try {
   await page
     .locator(".live-paid-sections")
     .screenshot({ path: "artifacts/swap-desktop.png" });
+  report.punctuation = [];
+  for (const font of ['Liberation Mono', 'DejaVu Sans Mono', 'FreeMono', 'monospace']) {
+    await page.locator('.live-odometer').evaluateAll((els, family)=>els.forEach(e=>e.style.fontFamily=family),font);
+    const slots = await page.locator('.live-punctuation').evaluateAll(els=>els.map(e=>{
+      const style=getComputedStyle(e), slot=e.getBoundingClientRect();
+      const range=document.createRange();range.selectNodeContents(e);
+      const glyph=range.getBoundingClientRect();
+      return {text:e.textContent,font:style.fontFamily,display:style.display,justify:style.justifyContent,overflow:style.overflow,offset:((glyph.left+glyph.right)-(slot.left+slot.right))/2,width:slot.width,size:parseFloat(style.fontSize),big:!!e.closest('.live-percentage')};
+    }));
+    report.punctuation.push(...slots);
+    check(slots.length >= 3 && slots.every(s=>['flex','inline-flex'].includes(s.display) && s.justify==='center' && s.overflow==='visible' && Math.abs(s.offset)<1), `Percentage, bag and cap punctuation centered in ${font}`);
+    check(slots.filter(s=>s.big).every(s=>Math.abs(s.width/s.size-.3)<.001), `Percentage retains .3em point slot in ${font}`);
+  }
+  await page.locator('.live-odometer').evaluateAll(els=>els.forEach(e=>e.style.removeProperty('font-family')));
   const quietCount = report.archiveCalls.filter(
     (c) => c.host === "ethereum-rpc.publicnode.com" && c.kind === "market",
   ).length;
@@ -523,9 +537,9 @@ try {
   );
   check(
     (await page.locator(".live-swap-row").first().innerText()).includes(
-      "0.4200 ETH",
+      "0.4286 ETH",
     ),
-    "Tape ETH comes from absolute amount0",
+    "Tape BUY ETH restores the hook fee",
   );
   check(
     (await page.locator(".live-swap-row").first().innerText()).includes(
@@ -560,7 +574,7 @@ try {
     "Final swap carries block impact",
   );
   check(
-    (await page.locator(".live-swap-impact").nth(1).innerText()) === "+0.00%",
+    (await page.locator(".live-swap-impact").nth(1).innerText()) === "0.00%",
     "Earlier swap in same block carries zero impact",
   );
   const age1 = await page.locator(".live-swap-row time").first().innerText();
@@ -719,6 +733,20 @@ try {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByRole("link", { name: "first act", exact: true }).click();
   await page.locator(".face").waitFor();
+  for (const width of [320,360,560,641,700,752,768]) {
+    await page.setViewportSize({width,height:1000});
+    check(await page.locator('.hero-note').isVisible() && await page.locator('.testament-link').isVisible(), `Phone hero lines visible at ${width}px`);
+    const heroOrder = await page.evaluate(()=>{const note=document.querySelector('.hero-note').getBoundingClientRect(),link=document.querySelector('.testament-link').getBoundingClientRect(),made=document.querySelector('.made-free').getBoundingClientRect();return note.top>=made.bottom && link.top>=note.bottom;});
+    check(heroOrder, `Hero note and testament follow made-me-free at ${width}px`);
+    check((await page.locator('.hero-note').innerText()).includes('Every trade now burns $IMD.'), 'Phone retains exact burial copy');
+    check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth), `First act no overflow at ${width}px`);
+  }
+  await page.setViewportSize({width:360,height:1000});
+  await page.locator('.seat-story').screenshot({path:'artifacts/phone-hero.png'});
+  await page.locator('.testament-link').focus();
+  await page.keyboard.press('Enter');
+  check(new URL(page.url()).hash==='#testament', 'Phone testament link works by keyboard');
+  await page.setViewportSize({width:1440,height:1000});
   await page.getByRole("tab", { name: "Sell", exact: true }).click();
   await page.getByRole("textbox", { name: "you pay" }).fill("1");
   await page.clock.fastForward(1000);
@@ -764,6 +792,9 @@ try {
     ),
     "Three-digit unlocked percentage fits 320px",
   );
+  const ticks = (await page.locator('.live-chart-grid text').allTextContents()).map(v=>Number(v.replace('%','')));
+  check(ticks.every(v=>v>=0), 'Rendered chart grid never negative after pump');
+  check(![...await page.locator('.live-swap-impact').allTextContents()].some(v=>/^[+−]0\.00%$/.test(v)), 'Rendered zero impacts have no sign');
   check(report.pageErrors.length === 0, "No browser exceptions");
   check(report.consoleErrors.length === 0, "No console errors");
   check(

@@ -7,6 +7,7 @@ import {
   type SellReading,
 } from "./paid";
 import { chartRange } from "./swapTape";
+import { chartTicks, tickLabel } from "./chartAxis";
 
 type Dot = { block: bigint; x: number; value: number };
 type Frame = { dots: Dot[]; range: [number, number] };
@@ -266,13 +267,11 @@ export function LiveSellChart({
                   />
                 </clipPath>
               </defs>
-              {[0, 1, 2, 3, 4].map((i) => {
-                const value =
-                  frame.range[0] + ((frame.range[1] - frame.range[0]) * i) / 4;
+              {chartTicks(frame.range).map((value) => {
                 return (
-                  <g key={i} className="live-chart-grid">
+                  <g key={value} className="live-chart-grid">
                     <text x={left - 8} y={y(value) + 4} textAnchor="end">
-                      {value.toFixed(1)}%
+                      {tickLabel(value)}
                     </text>
                     <line x1={left} x2={right} y1={y(value)} y2={y(value)} />
                   </g>

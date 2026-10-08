@@ -21,6 +21,7 @@ import {
   pointsToGo,
   swapAge,
   swapSide,
+  traderEth,
   type PoolSwap,
 } from "./swapTape";
 import { createSwapVisit, type SwapState } from "./swapVisit";
@@ -339,7 +340,7 @@ export function EverySwap({
         <ol>
           {swaps.map((swap) => {
             const side = swapSide(swap),
-              eth = Number(formatUnits(abs(swap.amount0), 18));
+              eth = Number(formatUnits(traderEth(swap), 18));
             const tokens = Number(formatUnits(abs(swap.amount1), 18));
             const tokenLabel = `${side === "BUY" ? "+" : "−"}${tokens >= 1e6 ? `${(tokens / 1e6).toFixed(2)}M` : tokens >= 1e3 ? `${(tokens / 1e3).toFixed(2)}K` : tokens.toFixed(2)} FREE1376`;
             return (

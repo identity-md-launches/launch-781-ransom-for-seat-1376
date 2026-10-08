@@ -50,6 +50,19 @@ export function createSwapVisit(
   const pending = new Set<bigint>();
   const failedBlocks = new Set<bigint>();
   let recovering = false;
+  let logsRetryAt = -Infinity,
+    hydratingLogs = false;
+  const readLogs = async (from: bigint, to: bigint) => {
+    if (now() < logsRetryAt) throw Error("Log retry cooling down");
+    try {
+      return await source.logs(from, to);
+    } catch (error) {
+      // Shared by startup history and live catch-up. Never advance either
+      // cursor on failure, and wait a full minute after the failed response.
+      logsRetryAt = now() + 60_000;
+      throw error;
+    }
+  };
   const update = (patch: Partial<SwapState>) => {
     state = { ...state, ...patch };
     listeners.forEach((listener) => listener());
@@ -141,16 +154,19 @@ export function createSwapVisit(
     }
   };
   const hydrate = async (latest: bigint) => {
+    hydratingLogs = true;
     const floor = latest > 9999n ? latest - 9999n : 0n;
     const found: PoolSwap[] = [];
     try {
       for (let end = latest; end >= floor; ) {
         const start = end - 1999n > floor ? end - 1999n : floor;
-        found.push(...(await source.logs(start, end)));
+        found.push(...(await readLogs(start, end)));
         if (new Set(found.map((s) => s.block)).size >= 24 || start === floor)
           break;
         end = start - 1n;
       }
+      hydratingLogs = false;
+      update({ historyFailed: failedBlocks.size > 0 });
       const blocks = [...new Set(found.map((s) => s.block))]
         .sort((a, b) => (a > b ? -1 : 1))
         .slice(0, 24);
@@ -173,6 +189,7 @@ export function createSwapVisit(
       update({ historyFailed: true });
       started = false;
     } finally {
+      hydratingLogs = false;
       update({ historyPending: false });
     }
   };
@@ -220,16 +237,20 @@ export function createSwapVisit(
     try {
       const latest = await source.latest();
       update({ block: latest });
-      if (!started) {
+      if (!started && now() >= logsRetryAt) {
         started = true;
         void hydrate(latest);
       }
       if (cursor === undefined) {
         cursor = latest;
         void market();
-      } else if (latest > cursor) {
+      } else if (
+        latest > cursor &&
+        (!hydratingLogs || logsRetryAt === -Infinity) &&
+        now() >= logsRetryAt
+      ) {
         const end = cursor + 2000n < latest ? cursor + 2000n : latest;
-        const incoming = await source.logs(cursor + 1n, end);
+        const incoming = await readLogs(cursor + 1n, end);
         cursor = end;
         if (incoming.length) {
           addLogs(incoming, true);

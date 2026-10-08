@@ -946,6 +946,10 @@ footer {
     align-items: center;
     margin-block-end: 22px;
   }
+  .hero-note,
+  .testament-link {
+    grid-column: 1 / -1;
+  }
   .face-stage {
     padding: 5px;
     grid-row: 1 / 3;

@@ -17,7 +17,6 @@ import {
   POOL_ID,
   EXPECTED_MANIFESTO_HASH,
   rpc,
-  readSnapshot,
   readHoldings,
   parseAmount,
   quote,
@@ -35,6 +34,7 @@ import {
   type Holdings,
   type Side,
 } from "./chain";
+import { readBatchedSnapshot as readSnapshot } from "./snapshotBatch";
 import { useWallet, walletLinks } from "./wallet";
 import { useAct, scrollToHash } from "./acts";
 import { quoteAmount, toGo, seatCopy, feeNote } from "./display";
@@ -43,7 +43,7 @@ import { KeyAct, useKey } from "./KeyAct";
 import { isKeyholder } from "./keyReads";
 import { liberatorAddress } from "./burial";
 import { Provenance, useBurial } from "./Provenance";
-import { dollarValue, freshDollars, readDollars, type DollarRound } from "./dollars";
+import { dollarValue, freshDollars, type DollarRound } from "./dollars";
 import { Testament } from "./Testament";
 import { SecondActView } from "./PaidSecondAct";
 import { usePaidHistory as usePaidRansom } from "./usePaidHistory";
@@ -159,9 +159,8 @@ export default function App() {
     if (refreshingRef.current) return;
     refreshingRef.current = true;
     setRefreshing(true);
-    void readDollars().then(setDollarRound);
     try {
-      setData(await readSnapshot());
+      setData(await readSnapshot(setDollarRound));
       setReadError("");
     } catch {
       setReadError(
@@ -575,12 +574,12 @@ export default function App() {
               <span>{copy.headline[1]}</span>
             </h1>
             {data?.buried && <Provenance burial={burial} address={liberator} />}
-            <p className="hero-note desktop-only">
+            <p className="hero-note">
               {copy.hero[0]}
               <br />
               {copy.hero[1]}
             </p>
-            <a className="testament-link desktop-only" href="#testament">
+            <a className="testament-link" href="#testament">
               {data?.buried ? "read the testament" : "the testament is sealed"}{" "}
               <span aria-hidden="true">↓</span>
             </a>
@@ -897,7 +896,7 @@ export default function App() {
               )}
             </section>
             <p className="router-note">
-              Uniswap’s app does not route through custom hooks yet. This page
+              Uniswap’s app does not route through this hook yet. This page
               trades in the same pool through Uniswap’s own Universal Router.
             </p>
           </div>
