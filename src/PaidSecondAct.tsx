@@ -2,11 +2,10 @@ import { Letter, SecondAct } from "./SecondAct";
 import { Watch } from "./Watch";
 import { Recouped } from "./Recouped";
 import { initialRecordState, type RecordState } from "./walletRecord";
-import { SellChart } from "./SellChart";
+import { LivePaidSections } from "./LivePaidSections";
 import { fixedAmount } from "./display";
 import { DEAD, NINE_WALLETS, watchTokens, type WatchState } from "./watch";
 import {
-  chartPoints,
   initialPaidState,
   marketDollars,
   maySell,
@@ -150,26 +149,10 @@ export function PaidSecondAct({
             ))}
           </div>
         </section>
-        <SellMeter
-          live={paid.live}
-          failed={paid.liveFailed}
+        <LivePaidSections
+          paid={paid}
           allowed={record.data?.firstDecreaseAllowed === true}
         />
-        <section className="paid-section" aria-labelledby="sell-chart-title">
-          <h2 className="label" id="sell-chart-title">
-            CHART
-          </h2>
-          <SellChart
-            points={chartPoints(history?.points ?? [], paid.live)}
-            pending={paid.historyPending}
-          />
-          {paid.historyFailed && (
-            <p className="label">
-              Live reads are unavailable. Check your connection and retry;
-              previous values may be out of date.
-            </p>
-          )}
-        </section>
         <Recouped record={record} />
         <Watch {...watch} record={record} paid />
       </div>

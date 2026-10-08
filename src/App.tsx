@@ -46,13 +46,14 @@ import { Provenance, useBurial } from "./Provenance";
 import { dollarValue, freshDollars, readDollars, type DollarRound } from "./dollars";
 import { Testament } from "./Testament";
 import { SecondActView } from "./PaidSecondAct";
-import { usePaidRansom } from "./usePaidRansom";
+import { usePaidHistory as usePaidRansom } from "./usePaidHistory";
 import { ThirdActSeal } from "./ThirdActGate";
 import { useWalletRecord } from "./useWalletRecord";
 import { recordFulfilled } from "./walletRecord";
 import { useWatch } from "./useWatch";
 import "./second-act.css";
 import "./paid-act.css";
+import "./live-paid.css";
 
 const DEAD_URL = "https://etherscan.io/address/0x000000000000000000000000000000000000dEaD";
 

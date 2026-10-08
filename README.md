@@ -1,14 +1,14 @@
 # FREE1376 — Seat #1376
 
-Static React/TypeScript/Vite continuation of job **4556beff-adfc-40ab-83b9-f70c713aa41d**, for the same publication name **free1376** at **free1376.site.identitymd.eth** / https://free1376.site.identitymd.eth.limo.
+Continuation of job **0f08a383-7c4c-489b-86df-94a0e5cc8b21**, prepared for the same publication name **free1376** at **free1376.site.identitymd.eth** / https://free1376.site.identitymd.eth.limo.
 
-This revision makes one fix: wallet-history discovery uses pure bisection. Equal endpoint balances finish a range immediately. Only unequal ranges split until their endpoints are adjacent blocks. The transfer-log helper and block-by-block fallback are removed. The already-read latest balance is reused, so an unchanged visit needs **two balance reads**. Exact cancellations within any equal-ended range are intentionally invisible, as requested.
+This revision replaces MAY HE SELL and CHART in the paid second act and adds EVERY SWAP. It adds rolling quote/market-cap values, direction feedback, the striped gradient meter, the once-per-visit unlock celebration, LIVE and SINCE THE BURN chart modes, and a seven-transaction tape. Native chart buttons, keyboard/hover/tap detail, responsive layouts and reduced motion are supported.
 
-Only `src/walletRecord.ts` and `src/recordReads.ts` change in the application. All components, copy, layout, CSS, public assets, other logic, CSP, build configuration and dependencies stay byte-for-byte unchanged. Receipt decoding, sale/move/buy/gift classification, proceeds, first-decrease quote, offer rows, verdicts, RECOUPED, fulfillment and third-act wording stay unchanged. Historical reads still use **https://eth.drpc.org**. `chain.ts` and `wallet.ts` retain their exact parent bytes. Nothing is deployed onchain, replaced or minted.
+The offer rows, RECOUPED, watch, wallet record, letter, other acts, transaction logic, CSP, dependencies and build configuration retain their parent bytes. Existing source changes are limited to two integration points: `PaidSecondAct.tsx` renders the new sections; `App.tsx` imports their stylesheet and a history-only replacement for the old paid reader. The replacement keeps the same payment search/hourly history and removes the superseded 15-second archive quote polling. All new behavior is in new files. The old exported components/readers remain available to the unchanged regression tests. No contract is deployed or changed.
 
-## Install, preview and rebuild
+## Install, preview, rebuild
 
-Use Node 22+ and the existing manifest and lockfile:
+Use Node 22+ and the existing lockfile:
 
 ```sh
 npm ci
@@ -18,64 +18,46 @@ npm run build
 npm run preview -- --host 127.0.0.1
 ```
 
-Open the printed preview URL. Vite's unchanged `base: "./"` emits relative asset URLs. Hash navigation works under gateway subpaths. The complete **dist/** export includes its icons, social image and runtime licenses. No backend, private credentials, remote fonts or vendored registry are needed.
+Vite's unchanged `base: "./"` produces relative assets. `dist/` is the complete static export, including the original icons, social image and runtime license. No backend or remote fonts are required.
 
-For this assignment, protected dependency paths were left untouched. The worker copied `package.json`, `package-lock.json`, `tsconfig.json`, `vite.config.ts`, `index.html`, `src/`, `scripts/` and `public/` into `/tmp/free1376-bisection`, installed there with `npm ci --ignore-scripts --no-audit --no-fund --cache /tmp/free1376-npm-cache`, and ran the checks there. The finished export was copied back to `dist/`. Dependencies, browser binaries and caches remain outside the deliverable. The ignore file is unchanged.
+The worker respected protected repository dependency paths by copying the existing manifest, lockfile, configuration, source, scripts and public assets to `/tmp/free1376-live`, running `npm ci --ignore-scripts --no-audit --no-fund --cache /tmp/free1376-live-cache` there, and copying the finished export back. Dependencies and browser caches are not deliverables. The ignore file is unchanged.
 
-## Live measurement — 7 October 2026
+## Data and behavior
 
-These are actual mainnet measurements of the production logic/export, with no RPC mocks:
+`swapReads.ts` polls only **ethereum-rpc.publicnode.com** for the head and recent pool logs. `swapVisit.ts` requests the head every four seconds, catches up log ranges without gaps, and refreshes the market on swaps or a 60-second heartbeat. A preliminary `balanceOf` encodes `min(balance, M0)` into the real quoter input. One Multicall3 at `latest` reads that quote, slot0, Chainlink, total supply, a confirming balance, and the actual block/time. A balance race rejects the reading rather than displaying an oversized quote. Zero balances skip the zero-input quoter simulation and yield zero proceeds.
 
-| Measurement | Result |
-| --- | --- |
-| Record alone, 16:36:51 UTC, through block **26,141,746** | **3 HTTP / JSON-RPC requests**: one latest header and two `balanceOf` reads; **0.390 seconds**, zero `eth_getLogs` |
-| Earlier record repeat, 16:33:59 UTC | Same 3 requests / 2 balance reads; **0.704 seconds** |
-| Fresh desktop visit, 1440px, 16:34:42 UTC | All three offer rows show **✓ after 0.477 seconds** from navigation |
-| Fresh mobile visit, 360px, 16:34:44 UTC | All three offer rows show **✓ after 0.584 seconds** from navigation |
+Startup scans the last 10,000 blocks, newest first in 2,000-block windows, stopping after finding 24 swap blocks. Historical market aggregates use **eth.drpc.org**, with three concurrent jobs and one additional baseline at the block before the oldest swap block. The capped balance is read at each historical block too. History, timestamps, live polling and the existing wallet record can finish independently. Unknown impacts show a dash; an unsuccessful quote retains the last good values and retries. A failed intermediate block never turns the following swap's impact into a fabricated cumulative delta.
 
-The record was empty; his balance was **12,160,406.58 FREE1376**. Full-page traffic through the appearance of ticks was **11 desktop / 12 mobile dRPC HTTP requests**, including other unchanged consumers (paid-block search, chart, burial and sell quote). That total is distinct from the record's three requests and is not a total for the page's ongoing polling. Timing depends on network/provider conditions.
+BUY means `amount0 < 0`; SELL means `amount0 > 0`. ETH and FREE1376 are the absolute event amounts, without a second fee adjustment. Impact is the change in percentage points across the whole block; its final swap carries the change and earlier swaps show zero. Consequently, a BUY can display a negative impact if a larger SELL occurred earlier in the same block. The tape sorts by block and log index, keeps seven rows, and updates ages once per second. LIVE keeps up to 40 unique swap-block points; SINCE THE BURN retains the existing hourly samples and detail.
 
-The full state check at block **26,141,737** found nine-wallet balance **0.00 FREE1376**, burned **189,216,124.32 FREE1376**, paid block **26,141,482** (**2026-10-07 15:43:59 UTC**), RECOUPED **0.0000 ETH**, all three rows passing, and a live capped sell quote of **1.386201555591304873 ETH**. At block **26,141,743**, the unchanged buy path quoted **0.001 ETH → 8,303.510601952947740731 FREE1376** and simulated successfully with `eth_call` returning `0x`; manifesto integrity passed. No transaction was signed or sent.
+Permission remains the exact 8.67 ETH comparison or the wallet record's allowed first decrease. Historical chart points never grant permission. The first live upward crossing triggers the burst once per document visit, never from initial or historical data. Reduced motion disables reels, gliding, pulsing, stripes, chips, burst and shake. Animation frames are local to the chart; tape ages are local to the tape. The explicitly requested 600 ms page shake is a compositor animation and does not re-render App.
 
-Raw results: [record count](artifacts/bisection-mainnet.json), [first repeat](artifacts/bisection-mainnet-first.json), [browser timings](artifacts/bisection-live-browser.json), [full record state](artifacts/record-mainnet.json), [trade simulation](artifacts/mainnet-check.json).
+## Validation and reproducibility
 
-## Validation
-
-Commands actually run in the isolated workspace, with exit code 0:
+Actual checks, screenshots, six-domain design review and limitations are recorded in [artifacts/validation.md](artifacts/validation.md). The final source's design system is in [DESIGN.md](DESIGN.md). Final results: **107/107 unit tests**, **52/52 production-browser checks**, clean typecheck/build, real mainnet quote equality and successful buy/sell/pumped-crossing fork checks. The static export is **716,073 bytes**.
 
 ```sh
 npm run typecheck
 npm test
 npm run build
-PLAYWRIGHT_BROWSERS_PATH=/tmp/free1376-bisection-browsers npx --no-install playwright-core install chromium
-PLAYWRIGHT_BROWSERS_PATH=/tmp/free1376-bisection-browsers npx --no-install tsx scripts/check-record-browser.mjs
-npx --no-install tsx scripts/check-bisection-mainnet.ts
-PLAYWRIGHT_BROWSERS_PATH=/tmp/free1376-bisection-browsers npx --no-install tsx scripts/check-bisection-live-browser.mjs
-npx --no-install tsx scripts/check-record-mainnet.ts
-npx --no-install tsx scripts/check-mainnet.ts
-```
-
-Read-only preservation and packaging checks run from the repository:
-
-```sh
-python3 scripts/check-bisection-preservation.py
-python3 scripts/check-record-preservation.py
+npx --no-install tsx scripts/check-swap-browser.mjs
+NODE_USE_ENV_PROXY=1 npx --no-install tsx scripts/check-swap-mainnet.ts
+NODE_USE_ENV_PROXY=1 npx --no-install tsx scripts/check-swap-live-browser.mjs
+NODE_USE_ENV_PROXY=1 npx --no-install tsx scripts/check-swap-fork.mjs
+python3 scripts/check-swap-preservation.py
 python3 scripts/check-package.py
 ```
 
-- **92/92 unit tests pass**. Equal endpoints read no interior blocks; an unchanged visit makes exactly two balance reads with log/receipt tripwires. A change across one million blocks uses **21–22 reads** at tested boundaries/interior positions, below the 42-read bound. Tests cover two changes, an unequal sale then buy, intentional invisible cancellations, pruning equal subranges, adjacent/empty ranges and failed reads. Existing classification, quote, proceeds, fulfillment, paid, watch, navigation and trade tests pass. Three old tests requiring cancellation discovery/exhaustive scanning were replaced because they contradicted the new specification.
-- **49/49 production-browser checks pass**, using Chromium **153.0.8010.12** and the actual `dist/` at `/preview/`. The mock RPC rejects any `eth_getLogs`. Coverage includes paid persistence, exact letter/copy, disclosures, gifts/buys/sales, early-sale quote, gas-adjusted proceeds and fulfillment, third-act navigation, chart keyboard/touch, buy/sell inputs, wallet chooser/Escape and read-failure recovery. No uncaught errors, console errors or missing local assets occurred.
-- Reflow passed at **320, 360, 640, 641, 768 and 1440px**. Live desktop/mobile and mocked fulfillment screenshots were inspected, along with forced-color chart focus. The supplied browser separately inspected the live export at 1280px, opened the wallet disclosure, followed the third-act link and reported zero console errors.
-- All six pinned Better Interface domains were reviewed. Existing `.skip-link` axe `region`/`skip-link` findings remain outside this strictly one-fix scope. No screen-reader, physical-wallet/device, native zoom/text enlargement, Safari/Firefox or post-publication check is claimed. See [the consolidated review](artifacts/validation.md) and [DESIGN.md](DESIGN.md).
-- Preservation checks confirm **47 unchanged files**, plus byte-identical classification/copy and receipt decoding inside `walletRecord.ts`. Protected manifest, lockfile, CSS, index/CSP and transaction modules are unchanged. The final formatting-only source pass was rebuilt/typechecked/tested; its export is byte-identical to the browser-tested export.
-- Vite's existing advisory for the approximately **506 kB** main chunk remains. No build configuration was changed to suppress it. The complete export is **691,265 bytes**; the conservative bundle inventory and 8 MiB budget check are in [package-report.json](artifacts/package-report.json). No dependency/cache directories, archives, registry mirrors or submodules are submitted.
+Browser scripts manage their own temporary static server and close it and Chromium before exiting. Set `CHROMIUM_PATH` to a compatible Chromium executable if the documented worker default is unavailable. On this worker, use `/opt/imd-tools/ms-playwright/chromium_headless_shell-1246/chrome-headless-shell-linux64/chrome-headless-shell`. The supplied browser MCP returned `Transport closed`; local Playwright/Chromium inspected the real export under `/preview/` instead. The full Chrome executable's crashpad failed in the sandbox, so the installed headless-shell executable was used.
 
-Live behavior remains subject to public RPC availability. Exact cancellations within any pruned range are intentionally unseen. The existing visit extension, block-level classification and finality behavior are retained.
+The fork script requires Anvil. It starts an isolated, loopback-only mainnet fork with **zero generated accounts**, impersonates the existing public holder locally, and funds it only on the fork. It sends no mainnet transaction, uses no key, deploys nothing, disables fork caching, and closes its subprocess. It performs a real buy and sell through the unchanged Universal Router calldata builder, then buys until the real capped quote crosses 100%. Browser RPC interception directs post-fork state to that local node and keeps pre-fork history on the specified real public providers.
 
-## Publish under free1376
+Mainnet evidence at block **26,145,223**: the 12,160,406.576973525384826126-token capped quote was **0.662093327098172650 ETH**, or **7.636601235273041%**. A separate direct quoter call at that block matched exactly. The real browser tape loaded seven actual transaction hashes, sides and amounts, including new swaps arriving after that first observation. See [the initial snapshot](artifacts/swap-mainnet-initial.json), [the final repeat](artifacts/swap-mainnet.json) and [swap-live-browser.json](artifacts/swap-live-browser.json). These are timestamped observations, not permanently current values.
 
-1. Run the live measurement commands above and report their current request counts and offer-row timing.
-2. Submit source, the unchanged package manifest/lockfile, documentation and the complete **dist/** directory as the next version of **free1376.site.identitymd.eth**, name **free1376**. The IdentityMD publisher serves that export without rebuilding; preserve all relative runtime assets and the existing social-image alias.
-3. Check the hosted first-, second- and third-act links, offer rows, disclosures, quote and wallet chooser after publication.
+Etherscan's transaction pages returned a challenge page from curl and were inaccessible through the web tool. Direct visual comparison against Etherscan remains unverified; RPC logs, exact transaction links, the production tape and direct real quotes were checked. Public RPC availability, recent chain reorganizations, physical-device/assistive-technology testing and post-publication behavior remain practical limitations. No claim of independent certification is made.
 
-**Publication pending:** the complete source/export is prepared for the submission system. No publisher tool or hosting credentials are exposed in this environment, and `.git/` writes are prohibited. No Git commit or hosted update is claimed.
+## Publish as free1376
+
+Submit the source, unchanged manifest/lockfile, documentation and complete `dist/` export to the IdentityMD publisher as the next version of **free1376.site.identitymd.eth**, name **free1376**. The publisher serves the committed export without rebuilding. Preserve relative assets and existing public images/licenses. After publication, check `#first-act`, `#second-act`, `#third-act`, both chart modes, tape links and the wallet chooser at the hosted URL.
+
+**Publication pending:** this environment exposes no publisher capability, and the assignment prohibits `.git/` writes. The source and export are ready for the network's submission/publishing step; no Git commit, new IPFS CID or hosted update is claimed.
